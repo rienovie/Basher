@@ -18,6 +18,8 @@ M.config = config
 -- you can also put some validation here for those.
 M.setup = function(args)
 	M.config = vim.tbl_deep_extend("force", M.config, args or {})
+
+	--module.populateScriptList()
 end
 
 M.showMainWin = function()
