@@ -10,6 +10,7 @@ local M = {}
 
 [config]
 autochmod=true
+templateDefault="basic.sh"
 
 [/home/vince]
 1_alias=/home/vince/projects/Basher/anotherDir/build.sh -additionalargs
@@ -28,14 +29,27 @@ autochmod=true
 local defaultDataFile = [[
 [config]
 autochmod=true
+templateDefault="basic.sh"
+
+]]
+
+local basicBashTemplate = [[#!usr/bin/bash
 
 ]]
 
 -- write the default values inside this function for now
 local function createNewDataFile()
-	io.output(vim.fn.stdpath("data") .. "/basher.data")
+	--create dataFile
+	io.output(vim.fn.stdpath("data") .. "/Basher/basher.data")
 	io.write(defaultDataFile)
 	io.write("[" .. vim.fn.getcwd() .. "]\n")
+	io.close()
+
+	--create basic bash template
+	local templateDir = vim.fn.stdpath("data") .. "/Basher/Templates"
+	vim.fn.mkdir(templateDir)
+	io.output(templateDir .. "/basic.sh")
+	io.write(basicBashTemplate)
 	io.close()
 end
 
@@ -140,13 +154,22 @@ M.populateScriptList = function()
 		M.scriptList[i] = nil
 	end
 
-	local dataFile = (vim.fn.stdpath("data") .. "/basher.data")
-	local file = io.open(dataFile)
+	print(vim.fs.find("Basher", { upward = false, type = "directory", path = tostring(vim.fn.stdpath("data")[1]) })[1])
 
-	if not file then
+	if
+		vim.fs.find("Basher", { upward = false, type = "directory", path = tostring(vim.fn.stdpath("data")) })[1] == nil
+	then
+		vim.fn.mkdir(vim.fn.stdpath("data") .. "/Basher")
 		createNewDataFile()
 	else
-		print("Exists!")
+		local filePath = (vim.fn.stdpath("data") .. "/Basher/basher.data")
+		local file = io.open(filePath)
+
+		if not file then
+			createNewDataFile()
+		else
+			print("Exists!")
+		end
 	end
 end
 
