@@ -38,7 +38,10 @@ local basicBashTemplate = [[#!usr/bin/bash
 ]]
 
 -- write the default values inside this function for now
-local function createNewDataFile()
+local function createNewDataFileAndDir()
+	--create basher directory
+	vim.fn.mkdir(vim.fn.stdpath("data") .. "/Basher")
+
 	--create dataFile
 	io.output(vim.fn.stdpath("data") .. "/Basher/basher.data")
 	io.write(defaultDataFile)
@@ -51,6 +54,48 @@ local function createNewDataFile()
 	io.output(templateDir .. "/basic.sh")
 	io.write(basicBashTemplate)
 	io.close()
+end
+
+local function doesDataFileExist()
+	return not (
+		vim.fs.find("Basher", { upward = false, type = "directory", path = tostring(vim.fn.stdpath("data")) })[1]
+			== nil
+		or vim.fs.find("basher.data", { upward = false, type = "file", path = tostring(vim.fn.stdpath("data")) })[1]
+			== nil
+	)
+end
+
+local function getSectionFromDataFile(sectionName)
+	if not doesDataFileExist() then
+		createNewDataFileAndDir()
+		return nil
+	end
+	local filePath = vim.fn.stdpath("data") .. "/Basher/basher.data"
+	local file = io.open(filePath)
+	if not file then
+		createNewDataFileAndDir()
+		return nil
+	else
+		local buildString = "[" .. sectionName .. "]"
+		local insideSection = false
+		local output = {}
+		for line in io.lines(filePath) do
+			if insideSection then
+				if string.sub(line, 1, 1) == "[" then
+					insideSection = false
+					goto continue
+				elseif string.len(line) == 0 then
+					goto continue
+				else
+					table.insert(output, line)
+				end
+			elseif line == buildString then
+				insideSection = true
+			end
+			::continue:: -- lua doesn't have built-in continue :(
+		end
+		return output
+	end
 end
 
 local function define_popup_mappings(buf)
@@ -142,7 +187,7 @@ M.show_main_win = function()
 	}
 	local _, pu = popup.create(buf, popupOpts)
 	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", "Basher")
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Option 1", "Option 2", "Option 3" })
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, M.scriptList)
 	vim.opt_local.number = true
 	vim.opt_local.cursorline = true
 	vim.opt_local.cursorlineopt = "both"
@@ -154,23 +199,19 @@ M.populateScriptList = function()
 		M.scriptList[i] = nil
 	end
 
-	print(vim.fs.find("Basher", { upward = false, type = "directory", path = tostring(vim.fn.stdpath("data")[1]) })[1])
+	if not doesDataFileExist() then
+		createNewDataFileAndDir()
+	end
 
-	if
-		vim.fs.find("Basher", { upward = false, type = "directory", path = tostring(vim.fn.stdpath("data")) })[1] == nil
-	then
-		vim.fn.mkdir(vim.fn.stdpath("data") .. "/Basher")
-		createNewDataFile()
-	else
-		local filePath = (vim.fn.stdpath("data") .. "/Basher/basher.data")
-		local file = io.open(filePath)
-
-		if not file then
-			createNewDataFile()
-		else
-			print("Exists!")
+	local filePath = (vim.fn.stdpath("data") .. "/Basher/basher.data")
+	local file = io.open(filePath)
+	local sectionData = getSectionFromDataFile(vim.fn.getcwd())
+	if sectionData ~= nil then
+		for _, v in pairs(sectionData) do
+			table.insert(M.scriptList, v)
 		end
 	end
+	io.close(file)
 end
 
 return M
