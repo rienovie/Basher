@@ -46,4 +46,8 @@ M.runScript = function(which)
 	return module.run_script(which)
 end
 
+M.printSomeFun = function()
+	return module.print_some_fun()
+end
+
 return M

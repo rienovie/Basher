@@ -26,6 +26,123 @@ templateDefault="basic.sh"
 --
 --]]
 
+local function getSomeFun()
+	local targetSingular = {
+		"Basher",
+		"NeoVim",
+		"Linux",
+		"Bash",
+		"The World",
+		"The Matrix",
+		"AI",
+		"Emacs",
+		"The Algorithm",
+		"The Cloud",
+		"The Internet",
+		"Scrum",
+		"Clean Code",
+	}
+	local targetPlural = {
+		"You",
+		"Penguins",
+		"Cats",
+		"Dogs",
+		"Developers",
+		"Hackers",
+		"The AI Overlords",
+		"Wizards",
+		"Dragons",
+		"Goblins",
+		"Elves",
+		"Time Travelers",
+	}
+	local actionsSingular = {
+		"loves",
+		"challenges",
+		"runs",
+		"protects",
+		"admires",
+		"confides in",
+		"secretly likes",
+		"is scared of",
+		"is jealous of",
+		"mocks",
+		"respects",
+		"teaches",
+		"depends on",
+		"dreams about",
+		"questions",
+		"saves time using",
+		"trusts",
+		"understands",
+		"forgives",
+		"avoids",
+		"blames everything on",
+		"is still using",
+		"envies",
+		"fights against",
+		"whispers about",
+	}
+	local actionsPlural = {
+		"love",
+		"challenge",
+		"run",
+		"protect",
+		"admire",
+		"confide in",
+		"secretly like",
+		"are scared of",
+		"are jealous of",
+		"mock",
+		"respect",
+		"teach",
+		"depend on",
+		"dream about",
+		"question",
+		"save time using",
+		"trust",
+		"understand",
+		"forgive",
+		"avoid",
+		"blame everything on",
+		"are still using",
+		"envy",
+		"fight against",
+		"whisper about",
+	}
+	local punc = {
+		".",
+		"!",
+		"?",
+		"!?",
+		"...",
+		"???",
+		"!!!",
+	}
+
+	math.randomseed(os.clock())
+	local r = math.random(2)
+	local subject = ""
+	local action = ""
+	if r == 1 then
+		subject = targetSingular[math.random(#targetSingular)]
+		action = actionsSingular[math.random(#actionsSingular)]
+	else
+		subject = targetPlural[math.random(#targetPlural)]
+		action = actionsPlural[math.random(#actionsPlural)]
+	end
+	local object = ""
+	r = math.random(2)
+	if r == 1 then
+		object = targetSingular[math.random(#targetSingular)]
+	else
+		object = targetPlural[math.random(#targetPlural)]
+	end
+	r = math.random(#punc)
+
+	return subject .. " " .. action .. " " .. object .. punc[r]
+end
+
 local defaultDataFile = [[
 [config]
 autochmod=true
@@ -99,6 +216,11 @@ local function getSectionFromDataFile(sectionName)
 end
 
 local function define_popup_mappings(buf)
+	local function preventInsertMode()
+		vim.cmd("stopinsert")
+		print("boop")
+	end
+
 	vim.api.nvim_buf_set_keymap(
 		buf,
 		"n",
@@ -148,6 +270,8 @@ local function define_popup_mappings(buf)
 		":lua require('Basher').runScript(3)<CR>",
 		{ noremap = true, silent = true }
 	)
+	vim.api.nvim_create_autocmd("InsertEnter", { buffer = buf, callback = preventInsertMode })
+	vim.api.nvim_create_autocmd("BufLeave", { buffer = buf, callback = M.close_main_win })
 end
 
 M.scriptList = {}
@@ -157,6 +281,8 @@ M.handle_enter_key = function()
 end
 
 M.close_main_win = function()
+	vim.cmd("set modifiable")
+	MainWinOpen = false
 	vim.api.nvim_win_close(0, true)
 end
 
@@ -173,7 +299,17 @@ M.run_script = function(which)
 	M.close_main_win()
 end
 
+M.print_some_fun = function()
+	print(getSomeFun())
+end
+
+MainWinOpen = false
+
 M.show_main_win = function()
+	if MainWinOpen then
+		return
+	end
+
 	M.populateScriptList()
 
 	local buf = vim.api.nvim_create_buf(false, true)
@@ -191,7 +327,9 @@ M.show_main_win = function()
 	vim.opt_local.number = true
 	vim.opt_local.cursorline = true
 	vim.opt_local.cursorlineopt = "both"
+	vim.cmd("set nomodifiable")
 	define_popup_mappings(buf)
+	MainWinOpen = true
 end
 
 M.populateScriptList = function()
