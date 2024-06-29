@@ -26,8 +26,8 @@ M.showMainWin = function()
 	return module.show_main_win()
 end
 
-M.handleEnterKey = function()
-	return module.handle_enter_key()
+M.runSelected = function()
+	return module.run_selected()
 end
 
 M.closeMainWin = function()

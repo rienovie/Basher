@@ -14,10 +14,10 @@ templateDefault="basic.sh"
 
 [/home/vince]
 1_alias=/home/vince/projects/Basher/anotherDir/build.sh -additionalargs
-2=/home/vince/Desktop/build.sh
+2_=/home/vince/Desktop/build.sh
 
 [/home/vince/projects/Basher]
-1=/home/vince/projects/Basher/build.sh
+1_=/home/vince/projects/Basher/build.sh
 2_superCoolName=/home/vince/projects/Basher/build.sh -anAddtionalArgument
 
 -- The user will be able to give the scripts an alias and be able
@@ -225,7 +225,7 @@ local function define_popup_mappings(buf)
 		buf,
 		"n",
 		"<CR>",
-		":lua require('Basher').handleEnterKey()<CR>",
+		":lua require('Basher').runSelected()<CR>",
 		{ noremap = true, silent = true }
 	)
 	vim.api.nvim_buf_set_keymap(
@@ -275,27 +275,235 @@ local function define_popup_mappings(buf)
 end
 
 M.scriptList = {}
+--[[
+--"FL" = full line text
+--"Num" = order
+--"Alias" = name to represent
+--"File" = full path to file
+--"Args" = additional arguments
+--]]
 
-M.handle_enter_key = function()
+local function pushToSL(fullLine)
+	local output = {}
+	output["FL"] = fullLine
+	local sBuild = ""
+	local bIndexDetermined = false
+	local bAliasDetermined = false
+	local bFileDetermined = false
+	local bEscSpace = false -- used to check if space doesn't end filepath
+	local c = ""
+	for i = 1, #fullLine do
+		c = string.sub(fullLine, i, i)
+		if not bIndexDetermined then
+			sBuild = sBuild .. c
+			if string.sub(fullLine,i+1,i+1) == "_" then
+				output["Num"] = tonumber(sBuild)
+				sBuild = ""
+				bIndexDetermined = true
+				goto continue
+			else
+				goto continue
+			end
+		end
+
+		if not bAliasDetermined then
+			if c == "_" then goto continue end
+			if c == "=" then
+				bAliasDetermined = true
+				if string.len(sBuild) == 0 then
+					output["Alias"] = nil
+					goto continue
+				else
+					output["Alias"] = sBuild
+					sBuild = ""
+					goto continue
+				end
+			end
+			sBuild = sBuild .. c
+			goto continue
+		end
+
+		if c == "\\" then
+			bEscSpace = true
+			sBuild = sBuild .. c
+			goto continue
+		end
+		if not bFileDetermined then
+			if c == " " and not bEscSpace then
+				output["File"] = sBuild
+				sBuild = ""
+				bFileDetermined = true
+				goto continue
+			elseif i == #fullLine then
+				sBuild = sBuild .. c
+				output["File"] = sBuild
+				sBuild = ""
+				goto continue
+			end
+		end
+
+		sBuild = sBuild .. c
+		bEscSpace = false
+		::continue::
+	end
+
+	if string.len(sBuild) >= 1 then
+		output["Args"] = sBuild
+	end
+
+	table.insert(M.scriptList, output)
+end
+
+local function getMainLines()
+	local output = {}
+	for _, value in pairs(M.scriptList) do
+		if value["Alias"] == nil then
+			local fp = value["File"]
+			local slashCount = 2 -- TODO create user config option
+			local curSlashCount = 0
+			local bAdded = false
+			for i = #fp, 1, -1 do
+				if string.sub(fp,i,i) == "/" then
+					curSlashCount = curSlashCount + 1
+					if curSlashCount >= slashCount then
+						table.insert(output,"..." .. string.sub(fp,i))
+						bAdded = true
+						break
+					end
+				end
+			end
+			if not bAdded then
+				table.insert(output, fp)
+			end
+		else
+			table.insert(output, value["Alias"])
+		end
+	end
+
+	return output
+end
+
+local function sortSL()
+	table.sort(M.scriptList, function(a,b) return a.Num < b.Num end)
+end
+
+local function rebuildSLFullLines()
+	local sBuild = ""
+	for _, v in ipairs(M.scriptList) do
+		sBuild = tostring(v["Num"]) .. "_"
+		if v["Alias"] ~= nil then
+			sBuild = sBuild .. v["Alias"]
+		end
+		sBuild = sBuild .. "=" .. v["File"]
+		if v["Args"] ~= nil then
+			sBuild = sBuild .. " " .. v["Args"]
+		end
+		v["FL"] = sBuild
+	end
+end
+
+-- Assumes file exists, TODO maybe handle if not?
+local function writeScriptListToFile()
+	local sectionHeader = "[" .. vim.fn.getcwd() .. "]"
+	local bInsideSection = false
+	local finalFile = ""
+	local dFilePath = vim.fn.stdpath("data") .. "/Basher/basher.data"
+	for line in io.lines(dFilePath) do
+		if bInsideSection then
+			if string.sub(line,1,1) == "[" then
+				bInsideSection = false
+				finalFile = finalFile .. line .. "\n"
+			end
+		else
+			if line == sectionHeader then
+				bInsideSection = true
+			else
+				finalFile = finalFile .. line .. "\n"
+			end
+		end
+	end
+
+	rebuildSLFullLines() -- just in case
+	local newSection = "[" .. vim.fn.getcwd() .. "]\n"
+	if #M.scriptList ~= 0 then
+		for _, value in pairs(M.scriptList) do
+			newSection = newSection .. value["FL"] .. "\n"
+		end
+	end
+
+	finalFile = finalFile .. newSection .. "\n"
+
+	io.output(dFilePath)
+	io.write(finalFile)
+	io.close()
+
+end
+
+local function populateScriptList()
+	for i, _ in ipairs(M.scriptList) do
+		M.scriptList[i] = nil
+end
+
+	if not doesDataFileExist() then
+		createNewDataFileAndDir()
+	end
+
+	local filePath = (vim.fn.stdpath("data") .. "/Basher/basher.data")
+	local file = io.open(filePath)
+	local sectionData = getSectionFromDataFile(vim.fn.getcwd())
+	if sectionData ~= nil then
+		for _, v in pairs(sectionData) do
+			pushToSL(v)
+		end
+	end
+	io.close(file)
+
+	sortSL()
+end
+
+M.run_selected = function()
 	M.run_script(vim.fn.line("."))
 end
 
 M.close_main_win = function()
 	vim.cmd("set modifiable")
+	writeScriptListToFile()
 	MainWinOpen = false
 	vim.api.nvim_win_close(0, true)
 end
 
 M.move_down = function()
-	print("Down pressed")
+	local lineNum = vim.fn.line(".")
+	if lineNum == vim.api.nvim_buf_line_count(CurrentBuf) then
+		return
+	else
+		M.scriptList[lineNum].Num = lineNum + 1
+		M.scriptList[lineNum + 1].Num = lineNum
+		sortSL()
+		rebuildSLFullLines()
+		vim.cmd("set modifiable")
+		vim.cmd("m +1")
+		vim.cmd("set nomodifiable")
+	end
 end
 
 M.move_up = function()
-	print("Up pressed")
+	local lineNum = vim.fn.line(".")
+	if lineNum == 1 then
+		return
+	else
+		M.scriptList[lineNum].Num = lineNum - 1
+		M.scriptList[lineNum - 1].Num = lineNum
+		sortSL()
+		rebuildSLFullLines()
+		vim.cmd("set modifiable")
+		vim.cmd("m -2")
+		vim.cmd("set nomodifiable")
+	end
 end
 
 M.run_script = function(which)
-	print("Called run on script : " .. which)
+	vim.print("Called run on " .. M.scriptList[which].FL)
 	M.close_main_win()
 end
 
@@ -310,9 +518,9 @@ M.show_main_win = function()
 		return
 	end
 
-	M.populateScriptList()
+	populateScriptList()
 
-	local buf = vim.api.nvim_create_buf(false, true)
+	CurrentBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
 		title = "Basher",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
@@ -321,35 +529,18 @@ M.show_main_win = function()
 		minheight = 5,
 		borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
 	}
-	local _, pu = popup.create(buf, popupOpts)
+	local _, pu = popup.create(CurrentBuf, popupOpts)
 	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", "Basher")
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, M.scriptList)
+	vim.api.nvim_buf_set_lines(CurrentBuf, 0, -1, false, getMainLines())
 	vim.opt_local.number = true
 	vim.opt_local.cursorline = true
 	vim.opt_local.cursorlineopt = "both"
 	vim.cmd("set nomodifiable")
-	define_popup_mappings(buf)
+	define_popup_mappings(CurrentBuf)
 	MainWinOpen = true
+
 end
 
-M.populateScriptList = function()
-	for i, _ in ipairs(M.scriptList) do
-		M.scriptList[i] = nil
-	end
 
-	if not doesDataFileExist() then
-		createNewDataFileAndDir()
-	end
-
-	local filePath = (vim.fn.stdpath("data") .. "/Basher/basher.data")
-	local file = io.open(filePath)
-	local sectionData = getSectionFromDataFile(vim.fn.getcwd())
-	if sectionData ~= nil then
-		for _, v in pairs(sectionData) do
-			table.insert(M.scriptList, v)
-		end
-	end
-	io.close(file)
-end
 
 return M
