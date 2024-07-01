@@ -4,28 +4,6 @@ local popup = require("plenary.popup")
 
 local M = {}
 
---[[
---
--- this is an example of what the config file will look like
-
-[config]
-autochmod=true
-templateDefault="basic.sh"
-
-[/home/vince]
-1_alias=/home/vince/projects/Basher/anotherDir/build.sh -additionalargs
-2_=/home/vince/Desktop/build.sh
-
-[/home/vince/projects/Basher]
-1_=/home/vince/projects/Basher/build.sh
-2_superCoolName=/home/vince/projects/Basher/build.sh -anAddtionalArgument
-
--- The user will be able to give the scripts an alias and be able
--- to add additional arguments as well as reorder them and I think
--- this is the easiest way to store their settings
---
---]]
-
 local function getSomeFun()
 	local targetSingular = {
 		"Basher",
@@ -154,6 +132,8 @@ local basicBashTemplate = [[#!usr/bin/bash
 
 ]]
 
+--TODO: look into zsh and if I should include a basic template for it
+
 -- write the default values inside this function for now
 local function createNewDataFileAndDir()
 	--create basher directory
@@ -270,6 +250,12 @@ local function define_popup_mappings(buf)
 		":lua require('Basher').runScript(3)<CR>",
 		{ noremap = true, silent = true }
 	)
+	vim.api.nvim_buf_set_keymap(
+		buf,
+		"n",
+		"e",
+		":lua require('Basher').editSelected()<CR>",
+		{ noremap = true, silent = true})
 	vim.api.nvim_create_autocmd("InsertEnter", { buffer = buf, callback = preventInsertMode })
 	vim.api.nvim_create_autocmd("BufLeave", { buffer = buf, callback = M.close_main_win })
 end
@@ -359,7 +345,7 @@ local function getMainLines()
 	for _, value in pairs(M.scriptList) do
 		if value["Alias"] == nil then
 			local fp = value["File"]
-			local slashCount = 2 -- TODO create user config option
+			local slashCount = 2 -- TODO: create user config option
 			local curSlashCount = 0
 			local bAdded = false
 			for i = #fp, 1, -1 do
@@ -402,7 +388,7 @@ local function rebuildSLFullLines()
 	end
 end
 
--- Assumes file exists, TODO maybe handle if not?
+-- Assumes file exists, TODO: maybe handle if not?
 local function writeScriptListToFile()
 	local sectionHeader = "[" .. vim.fn.getcwd() .. "]"
 	local bInsideSection = false
@@ -502,9 +488,26 @@ M.move_up = function()
 	end
 end
 
-M.run_script = function(which)
-	vim.print("Called run on " .. M.scriptList[which].FL)
+M.run_script = function(scriptIndex)
+	if M.scriptList[scriptIndex] == nil then
+		M.close_main_win()
+		return
+	end
+	local cmdLine = "!sh " .. M.scriptList[scriptIndex].File
+	if M.scriptList[scriptIndex].Args ~= nil then
+		cmdLine = cmdLine .. " " .. M.scriptList[scriptIndex].Args
+	end
+	vim.cmd(cmdLine)
 	M.close_main_win()
+end
+
+M.edit_selected = function ()
+	M.edit_script(vim.fn.line("."))
+end
+
+M.edit_script = function (scriptIndex)
+	M.close_main_win()
+	vim.cmd("e " .. M.scriptList[scriptIndex].File)
 end
 
 M.print_some_fun = function()

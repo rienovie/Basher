@@ -42,8 +42,16 @@ M.moveUp = function()
 	return module.move_up()
 end
 
-M.runScript = function(which)
-	return module.run_script(which)
+M.runScript = function(scriptIndex)
+	return module.run_script(scriptIndex)
+end
+
+M.editScript = function(scriptIndex)
+	return module.edit_script(scriptIndex)
+end
+
+M.editSelected = function()
+	return module.edit_selected()
 end
 
 M.printSomeFun = function()
