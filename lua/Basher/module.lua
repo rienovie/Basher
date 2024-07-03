@@ -195,11 +195,7 @@ local function getSectionFromDataFile(sectionName)
 	end
 end
 
-local function define_popup_mappings(buf)
-	local function preventInsertMode()
-		vim.cmd("stopinsert")
-		print("boop")
-	end
+local function define_popup_mappings_main(buf)
 
 	vim.api.nvim_buf_set_keymap(
 		buf,
@@ -255,8 +251,13 @@ local function define_popup_mappings(buf)
 		"n",
 		"e",
 		":lua require('Basher').editSelected()<CR>",
-		{ noremap = true, silent = true})
-	vim.api.nvim_create_autocmd("InsertEnter", { buffer = buf, callback = preventInsertMode })
+		{ noremap = true, silent = true} )
+	vim.api.nvim_buf_set_keymap(
+		buf,
+		"n",
+		"m",
+		":lua require('Basher').modifySelected()<CR>",
+		{ noremap = true, silent = true} )
 	vim.api.nvim_create_autocmd("BufLeave", { buffer = buf, callback = M.close_main_win })
 end
 
@@ -447,6 +448,63 @@ end
 	sortSL()
 end
 
+M.close_modify_win = function ()
+	M.show_main_win()
+end
+
+-- Assumes the main win is open and closes it
+local function openModifyWin(scriptIndex)
+	M.close_main_win()
+
+	local script = M.scriptList[scriptIndex]
+	if script == nil then
+		return
+	end
+	local lines = {}
+	table.insert(lines, 'File=' .. script["File"])
+	if script["Args"] == nil then
+		table.insert(lines, 'Arguments=')
+	else
+		table.insert(lines, 'Arguments=' .. script["Args"])
+	end
+	if script["Alias"] == nil then
+		table.insert(lines, 'Alias=')
+	else
+		table.insert(lines, 'Alias=' .. script["Alias"])
+	end
+
+	CurrentBuf = vim.api.nvim_create_buf(false, true)
+	local popupOpts = {
+		title = "Basher-Mod",
+		line = math.floor(((vim.o.lines - 5) / 2) - 1),
+		col = math.floor((vim.o.columns - 60) / 2),
+		minwidth = 60,
+		minheight = 5,
+		borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
+	}
+	local _, pu = popup.create(CurrentBuf, popupOpts)
+	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", 'Modify (' .. script.File .. ')')
+	vim.api.nvim_buf_set_lines(CurrentBuf, 0, -1, false, lines)
+	vim.cmd("set modifiable")
+
+	vim.api.nvim_create_autocmd("BufLeave", {buffer = CurrentBuf, callback = M.close_modify_win})
+	vim.api.nvim_buf_set_keymap(
+		CurrentBuf,
+		"n",
+		"<Esc>",
+		":lua require('Basher').closeModifyWin()<CR>",
+		{ noremap = true, silent = true})
+
+end
+
+M.modify_selected = function ()
+	M.modify_script(vim.fn.line("."))
+end
+
+M.modify_script = function (scriptIndex)
+	openModifyWin(scriptIndex)
+end
+
 M.run_selected = function()
 	M.run_script(vim.fn.line("."))
 end
@@ -539,7 +597,7 @@ M.show_main_win = function()
 	vim.opt_local.cursorline = true
 	vim.opt_local.cursorlineopt = "both"
 	vim.cmd("set nomodifiable")
-	define_popup_mappings(CurrentBuf)
+	define_popup_mappings_main(CurrentBuf)
 	MainWinOpen = true
 
 end

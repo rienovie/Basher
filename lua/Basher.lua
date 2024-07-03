@@ -58,4 +58,12 @@ M.printSomeFun = function()
 	return module.print_some_fun()
 end
 
+M.modifySelected = function()
+	return module.modify_selected()
+end
+
+M.closeModifyWin = function()
+	return module.close_modify_win()
+end
+
 return M
