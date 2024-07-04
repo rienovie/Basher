@@ -449,6 +449,9 @@ end
 end
 
 M.close_modify_win = function ()
+	vim.api.nvim_win_close(0, true)
+	ModBuf = nil
+	CurrentModifyScript = nil
 	M.show_main_win()
 end
 
@@ -456,7 +459,9 @@ end
 local function openModifyWin(scriptIndex)
 	M.close_main_win()
 
-	local script = M.scriptList[scriptIndex]
+	CurrentModifyScript = scriptIndex
+
+	local script = M.scriptList[CurrentModifyScript]
 	if script == nil then
 		return
 	end
@@ -473,28 +478,84 @@ local function openModifyWin(scriptIndex)
 		table.insert(lines, 'Alias=' .. script["Alias"])
 	end
 
-	CurrentBuf = vim.api.nvim_create_buf(false, true)
+	ModBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
-		title = "Basher-Mod",
+		title = "Modify | <Ctrl-s> Save | <Esc> Cancel",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
 		col = math.floor((vim.o.columns - 60) / 2),
 		minwidth = 60,
 		minheight = 5,
-		borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
+		borderchars = { "═", "║", "═", "║", "╔", "╗", "╝", "╚" },
 	}
-	local _, pu = popup.create(CurrentBuf, popupOpts)
+	local _, pu = popup.create(ModBuf, popupOpts)
 	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", 'Modify (' .. script.File .. ')')
-	vim.api.nvim_buf_set_lines(CurrentBuf, 0, -1, false, lines)
+	vim.api.nvim_buf_set_lines(ModBuf, 0, -1, false, lines)
 	vim.cmd("set modifiable")
 
-	vim.api.nvim_create_autocmd("BufLeave", {buffer = CurrentBuf, callback = M.close_modify_win})
+	vim.api.nvim_create_autocmd("BufLeave", {buffer = ModBuf, callback = M.close_modify_win})
 	vim.api.nvim_buf_set_keymap(
-		CurrentBuf,
+		ModBuf,
 		"n",
 		"<Esc>",
 		":lua require('Basher').closeModifyWin()<CR>",
 		{ noremap = true, silent = true})
+	vim.api.nvim_buf_set_keymap(
+		ModBuf,
+		"n",
+		"<C-s>",
+		":lua require('Basher').saveScriptOptions()<CR>",
+		{ noremap = true, silent = true})
 
+
+end
+
+M.save_script_options = function ()
+	local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+	local curKey
+	local curValue
+	local eqIndex
+	local countCheck = 0
+	local script = M.scriptList[CurrentModifyScript]
+
+	for _,ln in pairs(lines) do
+		_, eqIndex = string.find(ln, "=")
+		if eqIndex == nil then
+			goto continue
+		end
+		curKey = string.sub(ln,0,eqIndex-1)
+		curValue = string.sub(ln,eqIndex+1)
+		-- TODO: account for more input errors if needed
+		if curKey == "File" then
+			if curValue == "" then
+				error("Could not save! No file given!")
+				goto leaveFunc
+			end
+			script["File"] = curValue
+			countCheck = countCheck + 1
+		elseif curKey == "Arguments" then
+			if curValue ~= "" then
+				script["Args"] = curValue
+			end
+			countCheck = countCheck + 1
+		elseif curKey == "Alias" then
+			if curValue ~= "" then
+				script["Alias"] = curValue
+			end
+			countCheck = countCheck + 1
+		end
+
+	    ::continue::
+	end
+	if countCheck ~= 3 then
+		error("Could not save! Incorrect number of options!")
+		goto leaveFunc
+	end
+
+	rebuildSLFullLines()
+	writeScriptListToFile()
+
+	::leaveFunc::
+	M.close_modify_win()
 end
 
 M.modify_selected = function ()
@@ -514,11 +575,12 @@ M.close_main_win = function()
 	writeScriptListToFile()
 	MainWinOpen = false
 	vim.api.nvim_win_close(0, true)
+	MainBuf = nil
 end
 
 M.move_down = function()
 	local lineNum = vim.fn.line(".")
-	if lineNum == vim.api.nvim_buf_line_count(CurrentBuf) then
+	if lineNum == vim.api.nvim_buf_line_count(MainBuf) then
 		return
 	else
 		M.scriptList[lineNum].Num = lineNum + 1
@@ -581,23 +643,23 @@ M.show_main_win = function()
 
 	populateScriptList()
 
-	CurrentBuf = vim.api.nvim_create_buf(false, true)
+	MainBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
-		title = "Basher",
+		title = "Basher | [E]dit | [M]odify | [A]dd | [C]reate | <Shift> [U]p / [D]own",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
-		col = math.floor((vim.o.columns - 60) / 2),
-		minwidth = 60,
+		col = math.floor((vim.o.columns - 95) / 2),
+		minwidth = 95,
 		minheight = 5,
-		borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
+		borderchars = { "═", "║", "═", "║", "╔", "╗", "╝", "╚" },
 	}
-	local _, pu = popup.create(CurrentBuf, popupOpts)
+	local _, pu = popup.create(MainBuf, popupOpts)
 	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", "Basher")
-	vim.api.nvim_buf_set_lines(CurrentBuf, 0, -1, false, getMainLines())
+	vim.api.nvim_buf_set_lines(MainBuf, 0, -1, false, getMainLines())
 	vim.opt_local.number = true
 	vim.opt_local.cursorline = true
 	vim.opt_local.cursorlineopt = "both"
 	vim.cmd("set nomodifiable")
-	define_popup_mappings_main(CurrentBuf)
+	define_popup_mappings_main(MainBuf)
 	MainWinOpen = true
 
 end

@@ -66,4 +66,8 @@ M.closeModifyWin = function()
 	return module.close_modify_win()
 end
 
+M.saveScriptOptions = function()
+	return module.save_script_options()
+end
+
 return M
