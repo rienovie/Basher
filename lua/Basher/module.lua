@@ -4,6 +4,12 @@ local popup = require("plenary.popup")
 
 local M = {}
 
+ModWinOpen = false
+MainWinOpen = false
+--⌜⌝⌞⌟
+BorderChars = {"─", "│", "─", "│", "╭", "╮", "╯", "╰" }
+
+
 local function getSomeFun()
 	local targetSingular = {
 		"Basher",
@@ -251,13 +257,20 @@ local function define_popup_mappings_main(buf)
 		"n",
 		"e",
 		":lua require('Basher').editSelected()<CR>",
-		{ noremap = true, silent = true} )
+		{ noremap = true, silent = true } )
 	vim.api.nvim_buf_set_keymap(
 		buf,
 		"n",
 		"m",
 		":lua require('Basher').modifySelected()<CR>",
-		{ noremap = true, silent = true} )
+		{ noremap = true, silent = true } )
+	vim.api.nvim_buf_set_keymap(
+		buf,
+		"n",
+		"a",
+		":lua require('Basher').addScript()<CR>",
+		{ noremap = true, silent = true } )
+
 	vim.api.nvim_create_autocmd("BufLeave", { buffer = buf, callback = M.close_main_win })
 end
 
@@ -344,6 +357,10 @@ end
 local function getMainLines()
 	local output = {}
 	for _, value in pairs(M.scriptList) do
+		if value["File"] == nil then
+			table.insert(output, "Error!")
+			goto continue
+		end
 		if value["Alias"] == nil then
 			local fp = value["File"]
 			local slashCount = 2 -- TODO: create user config option
@@ -365,6 +382,7 @@ local function getMainLines()
 		else
 			table.insert(output, value["Alias"])
 		end
+	    ::continue::
 	end
 
 	return output
@@ -381,7 +399,10 @@ local function rebuildSLFullLines()
 		if v["Alias"] ~= nil then
 			sBuild = sBuild .. v["Alias"]
 		end
-		sBuild = sBuild .. "=" .. v["File"]
+		sBuild = sBuild .. "="
+		if v["File"] ~= nil then
+			sBuild = sBuild .. v["File"]
+		end
 		if v["Args"] ~= nil then
 			sBuild = sBuild .. " " .. v["Args"]
 		end
@@ -449,14 +470,22 @@ end
 end
 
 M.close_modify_win = function ()
+	if not ModWinOpen then
+		return
+	end
 	vim.api.nvim_win_close(0, true)
 	ModBuf = nil
 	CurrentModifyScript = nil
+	ModWinOpen = false
 	M.show_main_win()
 end
 
 -- Assumes the main win is open and closes it
 local function openModifyWin(scriptIndex)
+	if ModWinOpen then
+		return
+	end
+	ModWinOpen = true
 	M.close_main_win()
 
 	CurrentModifyScript = scriptIndex
@@ -466,7 +495,11 @@ local function openModifyWin(scriptIndex)
 		return
 	end
 	local lines = {}
-	table.insert(lines, 'File=' .. script["File"])
+	if script["File"] == nil then
+		table.insert(lines, "File=")
+	else
+		table.insert(lines, 'File=' .. script["File"])
+	end
 	if script["Args"] == nil then
 		table.insert(lines, 'Arguments=')
 	else
@@ -480,15 +513,15 @@ local function openModifyWin(scriptIndex)
 
 	ModBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
-		title = "Modify | <Ctrl-s> Save | <Esc> Cancel",
+		title = "Modify | <Ctrl-s> Save | <Ctrl-x> Remove Script | <Esc> Cancel",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
-		col = math.floor((vim.o.columns - 60) / 2),
-		minwidth = 60,
+		col = math.floor((vim.o.columns - 75) / 2),
+		minwidth = 75,
 		minheight = 5,
-		borderchars = { "═", "║", "═", "║", "╔", "╗", "╝", "╚" },
+		borderchars = BorderChars,
 	}
 	local _, pu = popup.create(ModBuf, popupOpts)
-	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", 'Modify (' .. script.File .. ')')
+	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", 'Modify Script Options')
 	vim.api.nvim_buf_set_lines(ModBuf, 0, -1, false, lines)
 	vim.cmd("set modifiable")
 
@@ -497,13 +530,27 @@ local function openModifyWin(scriptIndex)
 		ModBuf,
 		"n",
 		"<Esc>",
-		":lua require('Basher').closeModifyWin()<CR>",
+		"<cmd>:lua require('Basher').closeModifyWin()<CR>",
 		{ noremap = true, silent = true})
 	vim.api.nvim_buf_set_keymap(
 		ModBuf,
 		"n",
+		"<C-x>",
+		"<cmd>:lua require('Basher').removeScript()<CR>",
+		{ noremap = true, silent = true })
+
+	-- HACK: function does not allow multiple modes so must do twice
+	vim.api.nvim_buf_set_keymap(
+		ModBuf,
+		"n",
 		"<C-s>",
-		":lua require('Basher').saveScriptOptions()<CR>",
+		"<cmd>:lua require('Basher').saveScriptOptions()<CR>",
+		{ noremap = true, silent = true})
+	vim.api.nvim_buf_set_keymap(
+		ModBuf,
+		"i",
+		"<C-s>",
+		"<cmd>:lua require('Basher').saveScriptOptions()<CR>",
 		{ noremap = true, silent = true})
 
 
@@ -571,6 +618,9 @@ M.run_selected = function()
 end
 
 M.close_main_win = function()
+	if not MainWinOpen then
+		return
+	end
 	vim.cmd("set modifiable")
 	writeScriptListToFile()
 	MainWinOpen = false
@@ -634,7 +684,6 @@ M.print_some_fun = function()
 	print(getSomeFun())
 end
 
-MainWinOpen = false
 
 M.show_main_win = function()
 	if MainWinOpen then
@@ -645,12 +694,12 @@ M.show_main_win = function()
 
 	MainBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
-		title = "Basher | [E]dit | [M]odify | [A]dd | [C]reate | <Shift> [U]p / [D]own",
+		title = " [E]dit | [M]odify 〘 Basher 〙 [C]reate | [A]dd ",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
-		col = math.floor((vim.o.columns - 95) / 2),
-		minwidth = 95,
+		col = math.floor((vim.o.columns - 60) / 2),
+		minwidth = 60,
 		minheight = 5,
-		borderchars = { "═", "║", "═", "║", "╔", "╗", "╝", "╚" },
+		borderchars = BorderChars,
 	}
 	local _, pu = popup.create(MainBuf, popupOpts)
 	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", "Basher")
@@ -664,6 +713,36 @@ M.show_main_win = function()
 
 end
 
+M.add_script = function ()
+	if ModWinOpen then
+		return
+	end
 
+	if MainWinOpen then
+		M.close_main_win()
+	else
+		populateScriptList()
+	end
+
+	local newIndex = #M.scriptList + 1
+	pushToSL(tostring(newIndex) .. "_=")
+	openModifyWin(newIndex)
+
+end
+
+M.add_current_script = function ()
+
+end
+
+M.remove_script = function ()
+	if not ModWinOpen then
+		return
+	end
+
+	table.remove(M.scriptList, CurrentModifyScript)
+	writeScriptListToFile()
+
+	M.close_modify_win()
+end
 
 return M

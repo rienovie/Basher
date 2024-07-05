@@ -14,3 +14,5 @@ vim.api.nvim_create_user_command("PrintSomeFun", require("Basher").printSomeFun,
 vim.api.nvim_create_user_command("ModifySelected", require("Basher").modifySelected, {})
 vim.api.nvim_create_user_command("CloseModifyWin", require("Basher").closeModifyWin, {})
 vim.api.nvim_create_user_command("SaveScriptOptions", require("Basher").saveScriptOptions, {})
+vim.api.nvim_create_user_command("AddScript", require("Basher").addScript, {})
+vim.api.nvim_create_user_command("RemoveScript", require("Basher").removeScript, {})

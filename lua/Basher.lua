@@ -70,4 +70,12 @@ M.saveScriptOptions = function()
 	return module.save_script_options()
 end
 
+M.addScript = function()
+	return module.add_script()
+end
+
+M.removeScript = function()
+	return module.remove_script()
+end
+
 return M
