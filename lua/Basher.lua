@@ -2,9 +2,15 @@
 local module = require("Basher.module")
 
 ---@class Config
----@field opt string Your config option
 local config = {
-	opt = "Hello!",
+	-- Prints fun message whenever main window opens
+	funOnStart = true,
+
+	-- When creating new bash script, automatically mark the file as executable
+	autochmod = true,
+
+	-- Max amount of prior directories shown when file has no alias
+	pathMaxDirs = 2,
 }
 
 ---@class MyModule
@@ -18,8 +24,8 @@ M.config = config
 -- you can also put some validation here for those.
 M.setup = function(args)
 	M.config = vim.tbl_deep_extend("force", M.config, args or {})
-
-	--module.populateScriptList()
+	M.PrintFunOnStart = M.config.funOnStart
+	M.PathMax = M.config.pathMaxDirs
 end
 
 M.showMainWin = function()

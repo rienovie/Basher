@@ -6,9 +6,20 @@ local M = {}
 
 ModWinOpen = false
 MainWinOpen = false
---⌜⌝⌞⌟
 BorderChars = {"─", "│", "─", "│", "╭", "╮", "╯", "╰" }
 
+M.PrintFunOnStart = true
+M.PathMax = 2
+M.Autochmod = true
+
+M.scriptList = {}
+--[[
+--"FL" = full line text
+--"Num" = order
+--"Alias" = name to represent
+--"File" = full path to file
+--"Args" = additional arguments
+--]]
 
 local function getSomeFun()
 	local targetSingular = {
@@ -274,14 +285,7 @@ local function define_popup_mappings_main(buf)
 	vim.api.nvim_create_autocmd("BufLeave", { buffer = buf, callback = M.close_main_win })
 end
 
-M.scriptList = {}
---[[
---"FL" = full line text
---"Num" = order
---"Alias" = name to represent
---"File" = full path to file
---"Args" = additional arguments
---]]
+
 
 local function pushToSL(fullLine)
 	local output = {}
@@ -363,7 +367,10 @@ local function getMainLines()
 		end
 		if value["Alias"] == nil then
 			local fp = value["File"]
-			local slashCount = 2 -- TODO: create user config option
+			local slashCount = M.PathMax
+			if slashCount == 0 then
+				slashCount = 127
+			end
 			local curSlashCount = 0
 			local bAdded = false
 			for i = #fp, 1, -1 do
@@ -473,10 +480,13 @@ M.close_modify_win = function ()
 	if not ModWinOpen then
 		return
 	end
+	ModWinOpen = false
+	if vim.api.nvim_get_mode()["mode"] == "i" then
+		vim.cmd('stopinsert')
+	end
 	vim.api.nvim_win_close(0, true)
 	ModBuf = nil
 	CurrentModifyScript = nil
-	ModWinOpen = false
 	M.show_main_win()
 end
 
@@ -689,6 +699,11 @@ M.show_main_win = function()
 	if MainWinOpen then
 		return
 	end
+	MainWinOpen = true
+
+	if PrintFunOnStart then
+		M.print_some_fun()
+	end
 
 	populateScriptList()
 
@@ -709,7 +724,6 @@ M.show_main_win = function()
 	vim.opt_local.cursorlineopt = "both"
 	vim.cmd("set nomodifiable")
 	define_popup_mappings_main(MainBuf)
-	MainWinOpen = true
 
 end
 
