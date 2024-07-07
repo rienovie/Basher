@@ -4,13 +4,18 @@ local popup = require("plenary.popup")
 
 local M = {}
 
-ModWinOpen = false
-MainWinOpen = false
-BorderChars = {"─", "│", "─", "│", "╭", "╮", "╯", "╰" }
+M.ModWinOpen = false
+M.MainWinOpen = false
+M.BorderChars = {"─", "│", "─", "│", "╭", "╮", "╯", "╰" }
+M.CurrentModifyScript = nil
+M.ModBuf = nil
+M.MainBuf = nil
 
+--Config Vars
 M.PrintFunOnStart = true
+M.FunOnScriptCreate = true
 M.PathMax = 2
-M.Autochmod = true
+M.AutochmodX = true
 
 M.scriptList = {}
 --[[
@@ -25,6 +30,8 @@ local function getSomeFun()
 	local targetSingular = {
 		"Basher",
 		"NeoVim",
+		"Vi",
+		"Vim",
 		"Linux",
 		"Bash",
 		"The World",
@@ -36,6 +43,19 @@ local function getSomeFun()
 		"The Internet",
 		"Scrum",
 		"Clean Code",
+		"Rust",
+		"C++",
+		"M*croS*ft",
+		"The Fruit Company",
+		"C",
+		"C#",
+		"Lua",
+		"JavaScript",
+		"HTML",
+		"CSS",
+		"PHP",
+		"Java",
+		"Arch (I use it by the way)",
 	}
 	local targetPlural = {
 		"You",
@@ -477,30 +497,30 @@ end
 end
 
 M.close_modify_win = function ()
-	if not ModWinOpen then
+	if not M.ModWinOpen then
 		return
 	end
-	ModWinOpen = false
+	M.ModWinOpen = false
 	if vim.api.nvim_get_mode()["mode"] == "i" then
 		vim.cmd('stopinsert')
 	end
 	vim.api.nvim_win_close(0, true)
-	ModBuf = nil
-	CurrentModifyScript = nil
+	M.ModBuf = nil
+	M.CurrentModifyScript = nil
 	M.show_main_win()
 end
 
 -- Assumes the main win is open and closes it
 local function openModifyWin(scriptIndex)
-	if ModWinOpen then
+	if M.ModWinOpen then
 		return
 	end
-	ModWinOpen = true
+	M.ModWinOpen = true
 	M.close_main_win()
 
-	CurrentModifyScript = scriptIndex
+	M.CurrentModifyScript = scriptIndex
 
-	local script = M.scriptList[CurrentModifyScript]
+	local script = M.scriptList[M.CurrentModifyScript]
 	if script == nil then
 		return
 	end
@@ -521,29 +541,29 @@ local function openModifyWin(scriptIndex)
 		table.insert(lines, 'Alias=' .. script["Alias"])
 	end
 
-	ModBuf = vim.api.nvim_create_buf(false, true)
+	M.ModBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
 		title = "Modify | <Ctrl-s> Save | <Ctrl-x> Remove Script | <Esc> Cancel",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
 		col = math.floor((vim.o.columns - 75) / 2),
 		minwidth = 75,
 		minheight = 5,
-		borderchars = BorderChars,
+		borderchars = M.BorderChars,
 	}
-	local _, pu = popup.create(ModBuf, popupOpts)
+	local _, pu = popup.create(M.ModBuf, popupOpts)
 	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", 'Modify Script Options')
-	vim.api.nvim_buf_set_lines(ModBuf, 0, -1, false, lines)
+	vim.api.nvim_buf_set_lines(M.ModBuf, 0, -1, false, lines)
 	vim.cmd("set modifiable")
 
-	vim.api.nvim_create_autocmd("BufLeave", {buffer = ModBuf, callback = M.close_modify_win})
+	vim.api.nvim_create_autocmd("BufLeave", {buffer = M.ModBuf, callback = M.close_modify_win})
 	vim.api.nvim_buf_set_keymap(
-		ModBuf,
+		M.ModBuf,
 		"n",
 		"<Esc>",
 		"<cmd>:lua require('Basher').closeModifyWin()<CR>",
 		{ noremap = true, silent = true})
 	vim.api.nvim_buf_set_keymap(
-		ModBuf,
+		M.ModBuf,
 		"n",
 		"<C-x>",
 		"<cmd>:lua require('Basher').removeScript()<CR>",
@@ -551,13 +571,13 @@ local function openModifyWin(scriptIndex)
 
 	-- HACK: function does not allow multiple modes so must do twice
 	vim.api.nvim_buf_set_keymap(
-		ModBuf,
+		M.ModBuf,
 		"n",
 		"<C-s>",
 		"<cmd>:lua require('Basher').saveScriptOptions()<CR>",
 		{ noremap = true, silent = true})
 	vim.api.nvim_buf_set_keymap(
-		ModBuf,
+		M.ModBuf,
 		"i",
 		"<C-s>",
 		"<cmd>:lua require('Basher').saveScriptOptions()<CR>",
@@ -572,7 +592,7 @@ M.save_script_options = function ()
 	local curValue
 	local eqIndex
 	local countCheck = 0
-	local script = M.scriptList[CurrentModifyScript]
+	local script = M.scriptList[M.CurrentModifyScript]
 
 	for _,ln in pairs(lines) do
 		_, eqIndex = string.find(ln, "=")
@@ -628,19 +648,19 @@ M.run_selected = function()
 end
 
 M.close_main_win = function()
-	if not MainWinOpen then
+	if not M.MainWinOpen then
 		return
 	end
 	vim.cmd("set modifiable")
 	writeScriptListToFile()
-	MainWinOpen = false
+	M.MainWinOpen = false
 	vim.api.nvim_win_close(0, true)
-	MainBuf = nil
+	M.MainBuf = nil
 end
 
 M.move_down = function()
 	local lineNum = vim.fn.line(".")
-	if lineNum == vim.api.nvim_buf_line_count(MainBuf) then
+	if lineNum == vim.api.nvim_buf_line_count(M.MainBuf) then
 		return
 	else
 		M.scriptList[lineNum].Num = lineNum + 1
@@ -696,43 +716,43 @@ end
 
 
 M.show_main_win = function()
-	if MainWinOpen then
+	if M.MainWinOpen then
 		return
 	end
-	MainWinOpen = true
+	M.MainWinOpen = true
 
-	if PrintFunOnStart then
+	if M.PrintFunOnStart then
 		M.print_some_fun()
 	end
 
 	populateScriptList()
 
-	MainBuf = vim.api.nvim_create_buf(false, true)
+	M.MainBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
-		title = " [E]dit | [M]odify 〘 Basher 〙 [C]reate | [A]dd ",
+		title = " [E]dit | [M]odify  ╠Basher╣  [C]reate | [A]dd ",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
 		col = math.floor((vim.o.columns - 60) / 2),
 		minwidth = 60,
 		minheight = 5,
-		borderchars = BorderChars,
+		borderchars = M.BorderChars,
 	}
-	local _, pu = popup.create(MainBuf, popupOpts)
+	local _, pu = popup.create(M.MainBuf, popupOpts)
 	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", "Basher")
-	vim.api.nvim_buf_set_lines(MainBuf, 0, -1, false, getMainLines())
+	vim.api.nvim_buf_set_lines(M.MainBuf, 0, -1, false, getMainLines())
 	vim.opt_local.number = true
 	vim.opt_local.cursorline = true
 	vim.opt_local.cursorlineopt = "both"
 	vim.cmd("set nomodifiable")
-	define_popup_mappings_main(MainBuf)
+	define_popup_mappings_main(M.MainBuf)
 
 end
 
 M.add_script = function ()
-	if ModWinOpen then
+	if M.ModWinOpen then
 		return
 	end
 
-	if MainWinOpen then
+	if M.MainWinOpen then
 		M.close_main_win()
 	else
 		populateScriptList()
@@ -745,18 +765,47 @@ M.add_script = function ()
 end
 
 M.add_current_script = function ()
-
-end
-
-M.remove_script = function ()
-	if not ModWinOpen then
+	if M.ModWinOpen then
 		return
 	end
 
-	table.remove(M.scriptList, CurrentModifyScript)
+	if M.MainWinOpen then
+		M.close_main_win()
+	else
+		populateScriptList()
+	end
+
+	local curFile = vim.api.nvim_buf_get_name(0)
+
+	if string.sub(curFile, -2) ~= "sh" then
+		vim.print(curFile .. " is not a bash script!")
+		return
+	end
+
+	local newIndex = #M.scriptList + 1
+	local newFL = tostring(newIndex) .. "_=" .. curFile
+	pushToSL(newFL)
+	openModifyWin(newIndex)
+
+end
+
+M.add_current_script_as_template = function ()
+	--TODO:
+end
+
+M.remove_script = function ()
+	if not M.ModWinOpen then
+		return
+	end
+
+	table.remove(M.scriptList, M.CurrentModifyScript)
 	writeScriptListToFile()
 
 	M.close_modify_win()
+end
+
+M.open_create_menu = function ()
+	--TODO:
 end
 
 return M

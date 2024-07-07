@@ -7,7 +7,7 @@ local config = {
 	funOnStart = true,
 
 	-- When creating new bash script, automatically mark the file as executable
-	autochmod = true,
+	autoMakeExec = true,
 
 	-- Max amount of prior directories shown when file has no alias
 	pathMaxDirs = 2,
@@ -26,6 +26,7 @@ M.setup = function(args)
 	M.config = vim.tbl_deep_extend("force", M.config, args or {})
 	M.PrintFunOnStart = M.config.funOnStart
 	M.PathMax = M.config.pathMaxDirs
+	M.AutochmodX = M.config.autoMakeExec
 end
 
 M.showMainWin = function()
@@ -82,6 +83,10 @@ end
 
 M.removeScript = function()
 	return module.remove_script()
+end
+
+M.addCurrentScript = function()
+	return module.add_current_script()
 end
 
 return M
