@@ -1,15 +1,18 @@
 ---@class CustomModule
 
 local popup = require("plenary.popup")
+local plenary = require("plenary.scandir")
 
 local M = {}
 
 M.ModWinOpen = false
 M.MainWinOpen = false
+M.CreateWinOpen = false
 M.BorderChars = {"─", "│", "─", "│", "╭", "╮", "╯", "╰" }
 M.CurrentModifyScript = nil
 M.ModBuf = nil
 M.MainBuf = nil
+M.CreateBut = nil
 
 --Config Vars
 M.PrintFunOnStart = true
@@ -29,7 +32,7 @@ M.scriptList = {}
 local function getSomeFun()
 	local targetSingular = {
 		"Basher",
-		"NeoVim",
+		"Neovim",
 		"Vi",
 		"Vim",
 		"Linux",
@@ -512,7 +515,7 @@ end
 
 -- Assumes the main win is open and closes it
 local function openModifyWin(scriptIndex)
-	if M.ModWinOpen then
+	if M.ModWinOpen or M.CreateWinOpen then
 		return
 	end
 	M.ModWinOpen = true
@@ -729,7 +732,7 @@ M.show_main_win = function()
 
 	M.MainBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
-		title = " [E]dit | [M]odify  ╠Basher╣  [C]reate | [A]dd ",
+		title = " [E]dit | [M]odify  ╔╣Basher╠╗  [C]reate | [A]dd ",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
 		col = math.floor((vim.o.columns - 60) / 2),
 		minwidth = 60,
@@ -748,7 +751,7 @@ M.show_main_win = function()
 end
 
 M.add_script = function ()
-	if M.ModWinOpen then
+	if M.ModWinOpen or M.CreateWinOpen then
 		return
 	end
 
@@ -765,7 +768,7 @@ M.add_script = function ()
 end
 
 M.add_current_script = function ()
-	if M.ModWinOpen then
+	if M.ModWinOpen or M.CreateWinOpen then
 		return
 	end
 
@@ -790,7 +793,39 @@ M.add_current_script = function ()
 end
 
 M.add_current_script_as_template = function ()
-	--TODO:
+	if M.MainWinOpen or M.ModWinOpen then
+		return
+	end
+
+	local fullPath = vim.api.nvim_buf_get_name(0)
+	if string.sub(fullPath, -2) ~= "sh" then
+		vim.print(fullPath .. " is not a bash file!")
+		return
+	end
+
+	local fileLines = vim.api.nvim_buf_get_lines(0, 0, -1,false)
+	local finalOut = ""
+	for _, value in ipairs(fileLines) do
+		finalOut = finalOut .. value .. "\n"
+	end
+	local _, fileNameStartIndex = string.find(fullPath,vim.fn.getcwd(0))
+	if fileNameStartIndex == nil then
+		vim.print("File name error " .. fullPath)
+		return
+	end
+	fileNameStartIndex = fileNameStartIndex + 2
+
+	local newTemplateName = string.sub(fullPath,fileNameStartIndex, -1)
+	local newFilePath = vim.fn.stdpath("data") .. "/Basher/Templates/" .. newTemplateName
+	if io.open(newFilePath) ~= nil then
+		vim.print("Template: " .. newTemplateName .. " already exists!")
+		return
+	end
+
+	io.output(newFilePath)
+	io.write(finalOut)
+	io.close()
+
 end
 
 M.remove_script = function ()
@@ -805,6 +840,18 @@ M.remove_script = function ()
 end
 
 M.open_create_menu = function ()
+	if M.CreateWinOpen or M.ModWinOpen then
+		return
+	end
+
+	
+end
+
+local function getTemplateList()
+	plenary.scan_dir(path, opts)
+end
+
+M.close_create_menu = function ()
 	--TODO:
 end
 

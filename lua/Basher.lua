@@ -89,4 +89,8 @@ M.addCurrentScript = function()
 	return module.add_current_script()
 end
 
+M.addCurrentScriptAsTemplate = function()
+	return module.add_current_script_as_template()
+end
+
 return M

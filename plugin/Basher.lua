@@ -17,3 +17,4 @@ vim.api.nvim_create_user_command("SaveScriptOptions", require("Basher").saveScri
 vim.api.nvim_create_user_command("AddScript", require("Basher").addScript, {})
 vim.api.nvim_create_user_command("RemoveScript", require("Basher").removeScript, {})
 vim.api.nvim_create_user_command("AddCurrentScript", require("Basher").addCurrentScript, {})
+vim.api.nvim_create_user_command("AddCurrentScriptAsTemplate", require("Basher").addCurrentScriptAsTemplate, {})
