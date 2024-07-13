@@ -27,10 +27,12 @@ M.setup = function(args)
 	M.PrintFunOnStart = M.config.funOnStart
 	M.PathMax = M.config.pathMaxDirs
 	M.AutochmodX = M.config.autoMakeExec
+
+	module.init()
 end
 
-M.showMainWin = function()
-	return module.show_main_win()
+M.openMainWin = function()
+	return module.open_main_win()
 end
 
 M.runSelected = function()
@@ -91,6 +93,18 @@ end
 
 M.addCurrentScriptAsTemplate = function()
 	return module.add_current_script_as_template()
+end
+
+M.openCreateWin = function()
+	return module.open_create_win()
+end
+
+M.closeCreateWin = function()
+	return module.close_create_win()
+end
+
+M.refreshTemplateList = function()
+	return module.refresh_template_list()
 end
 
 return M

@@ -12,7 +12,8 @@ M.BorderChars = {"─", "│", "─", "│", "╭", "╮", "╯", "╰" }
 M.CurrentModifyScript = nil
 M.ModBuf = nil
 M.MainBuf = nil
-M.CreateBut = nil
+M.CreateBuf = nil
+M.templateList = {}
 
 --Config Vars
 M.PrintFunOnStart = true
@@ -235,77 +236,83 @@ local function getSectionFromDataFile(sectionName)
 	end
 end
 
-local function define_popup_mappings_main(buf)
+local function definePopupMappingsMain()
+	vim.api.nvim_create_autocmd("BufLeave", { buffer = M.MainBuf, callback = M.close_main_win })
 
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"<CR>",
 		":lua require('Basher').runSelected()<CR>",
 		{ noremap = true, silent = true }
 	)
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"<Esc>",
 		":lua require('Basher').closeMainWin()<CR>",
 		{ noremap = true, silent = true }
 	)
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"<S-d>",
 		":lua require('Basher').moveDown()<CR>",
 		{ noremap = true, silent = true, desc = "[M]ove [D]own" }
 	)
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"<S-u>",
 		":lua require('Basher').moveUp()<CR>",
 		{ noremap = true, silent = true, desc = "[M]ove [U]p" }
 	)
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"1",
 		":lua require('Basher').runScript(1)<CR>",
 		{ noremap = true, silent = true }
 	)
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"2",
 		":lua require('Basher').runScript(2)<CR>",
 		{ noremap = true, silent = true }
 	)
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"3",
 		":lua require('Basher').runScript(3)<CR>",
 		{ noremap = true, silent = true }
 	)
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"e",
 		":lua require('Basher').editSelected()<CR>",
 		{ noremap = true, silent = true } )
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"m",
 		":lua require('Basher').modifySelected()<CR>",
 		{ noremap = true, silent = true } )
 	vim.api.nvim_buf_set_keymap(
-		buf,
+		M.MainBuf,
 		"n",
 		"a",
 		":lua require('Basher').addScript()<CR>",
 		{ noremap = true, silent = true } )
+	vim.api.nvim_buf_set_keymap(
+		M.MainBuf,
+		"n",
+		"c",
+		":lua require('Basher').openCreateWin()<CR>",
+		{ noremap = true, silent = true } )
 
-	vim.api.nvim_create_autocmd("BufLeave", { buffer = buf, callback = M.close_main_win })
 end
 
 
@@ -510,7 +517,7 @@ M.close_modify_win = function ()
 	vim.api.nvim_win_close(0, true)
 	M.ModBuf = nil
 	M.CurrentModifyScript = nil
-	M.show_main_win()
+	M.open_main_win()
 end
 
 -- Assumes the main win is open and closes it
@@ -546,7 +553,7 @@ local function openModifyWin(scriptIndex)
 
 	M.ModBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
-		title = "Modify | <Ctrl-s> Save | <Ctrl-x> Remove Script | <Esc> Cancel",
+		title = " ╔╣Modify╠╗  <Ctrl-S> Save | <Ctrl-X> Remove Script | <Esc> Cancel ",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
 		col = math.floor((vim.o.columns - 75) / 2),
 		minwidth = 75,
@@ -587,6 +594,49 @@ local function openModifyWin(scriptIndex)
 		{ noremap = true, silent = true})
 
 
+end
+
+local function definePopupMappingsCreate()
+	vim.api.nvim_create_autocmd("BufLeave", { buffer = M.CreateBuf, callback = M.close_create_win })
+
+	vim.api.nvim_buf_set_keymap(
+		M.CreateBuf,
+		"n",
+		"<CR>",
+		":lua require('Basher').closeCreateWin()<CR>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_buf_set_keymap(
+		M.CreateBuf,
+		"n",
+		"<Esc>",
+		":lua require('Basher').closeCreateWin()<CR>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_buf_set_keymap(
+		M.CreateBuf,
+		"n",
+		"<C-r>",
+		":lua require('Basher').refreshTemplateList()<CR>",
+		{ noremap = true, silent = true }
+	)
+end
+
+local function getTemplateList()
+	local tList = plenary.scan_dir(vim.fn.stdpath("data") .. "/Basher/Templates")
+	local output = {}
+
+	for _,value in pairs(tList) do
+		local _,e = string.find(string.reverse(value), "/")
+		if e == nil then
+			error("Problem in getting template list for some reason a value of: " .. value .. " was found in TemplateDir!")
+			goto continue
+		end
+		table.insert(output, string.sub(value,string.len(value) - e + 2,string.len(value) - 3))
+	    ::continue::
+	end
+
+	return output
 end
 
 M.save_script_options = function ()
@@ -718,7 +768,7 @@ M.print_some_fun = function()
 end
 
 
-M.show_main_win = function()
+M.open_main_win = function()
 	if M.MainWinOpen then
 		return
 	end
@@ -732,7 +782,7 @@ M.show_main_win = function()
 
 	M.MainBuf = vim.api.nvim_create_buf(false, true)
 	local popupOpts = {
-		title = " [E]dit | [M]odify  ╔╣Basher╠╗  [C]reate | [A]dd ",
+		title = " ╔╣Basher╠╗  [E]dit | [M]odify | [C]reate | [A]dd ",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
 		col = math.floor((vim.o.columns - 60) / 2),
 		minwidth = 60,
@@ -746,7 +796,7 @@ M.show_main_win = function()
 	vim.opt_local.cursorline = true
 	vim.opt_local.cursorlineopt = "both"
 	vim.cmd("set nomodifiable")
-	define_popup_mappings_main(M.MainBuf)
+	definePopupMappingsMain()
 
 end
 
@@ -839,20 +889,69 @@ M.remove_script = function ()
 	M.close_modify_win()
 end
 
-M.open_create_menu = function ()
+M.open_create_win = function ()
 	if M.CreateWinOpen or M.ModWinOpen then
 		return
 	end
 
-	
+	if M.MainWinOpen then
+		M.close_main_win()
+	end
+	M.CreateWinOpen = true
+
+	populateScriptList()
+
+	M.CreateBuf = vim.api.nvim_create_buf(false,true)
+	local popupOpts = {
+		title = " ╔╣Template╠╗  <Ctrl-R> Refresh | <Esc> Cancel ",
+		line = math.floor(((vim.o.lines - 5) / 2) - 1),
+		col = math.floor((vim.o.columns - 60) / 2),
+		minwidth = 60,
+		minheight = 5,
+		borderchars = M.BorderChars,
+	}
+	local _,pu = popup.create(M.CreateBuf, popupOpts)
+	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", "Create From Template")
+	vim.api.nvim_buf_set_lines(M.CreateBuf,0,-1,false,M.templateList)
+	vim.opt_local.number = true
+	vim.opt_local.cursorline = true
+	vim.opt_local.cursorlineopt = "both"
+	vim.cmd("set nomodifiable")
+	definePopupMappingsCreate()
+
+
 end
 
-local function getTemplateList()
-	plenary.scan_dir(path, opts)
+
+
+M.close_create_win = function ()
+	if not M.CreateWinOpen then
+		return
+	end
+	vim.cmd("set modifiable")
+	M.CreateWinOpen = false
+	vim.api.nvim_win_close(0, true)
+	M.CreateBuf = nil
+
+	M.open_main_win()
 end
 
-M.close_create_menu = function ()
-	--TODO:
+M.refresh_template_list = function ()
+	M.templateList = getTemplateList()
+	if #M.templateList == 0 then
+		vim.print("Basher found 0 Templates!")
+	else
+		vim.print("Basher Templates populated.")
+	end
+	if M.CreateWinOpen then
+		vim.cmd("set modifiable")
+		vim.api.nvim_buf_set_lines(M.CreateBuf,0,-1,false,M.templateList)
+		vim.cmd("set nomodifiable")
+	end
+end
+
+M.init = function ()
+	M.refresh_template_list()
 end
 
 return M
