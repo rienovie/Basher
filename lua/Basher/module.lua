@@ -620,6 +620,13 @@ local function definePopupMappingsCreate()
 		":lua require('Basher').refreshTemplateList()<CR>",
 		{ noremap = true, silent = true }
 	)
+	vim.api.nvim_buf_set_keymap(
+		M.CreateBuf,
+		"n",
+		"e",
+		":lua require('Basher').editSelectedTemplate()<CR>",
+		{ noremap = true, silent = true }
+	)
 end
 
 local function getTemplateList()
@@ -826,7 +833,7 @@ M.add_script = function ()
 
 end
 
-M.add_current_script = function ()
+M.add_current_script = function (showModWin)
 	if M.ModWinOpen or M.CreateWinOpen then
 		return
 	end
@@ -847,7 +854,13 @@ M.add_current_script = function ()
 	local newIndex = #M.scriptList + 1
 	local newFL = tostring(newIndex) .. "_=" .. curFile
 	pushToSL(newFL)
-	openModifyWin(newIndex)
+	if showModWin then
+		openModifyWin(newIndex)
+	else
+		vim.print("Script " .. curFile .. " was added to Basher.")
+	end
+
+	writeScriptListToFile()
 
 end
 
@@ -977,8 +990,6 @@ M.new_from_template = function (templateName)
 		M.close_main_win()
 	end
 
-	vim.print(templateName)
-
 	local name = vim.fn.input("Please enter name...")
 	-- TODO: check for invalid file name input
 	if doesTemplateExist(name) then
@@ -1018,6 +1029,8 @@ M.new_from_template = function (templateName)
 	vim.api.nvim_buf_set_lines(0, 0, -1, false, finalLines)
 	vim.cmd(":w")
 	vim.api.nvim_feedkeys("GA", "n", false)
+
+	M.add_current_script(false)
 end
 
 M.new_from_template_cur_line = function()
@@ -1026,6 +1039,20 @@ end
 
 M.init = function ()
 	M.refresh_template_list()
+end
+
+M.edit_selected_template = function()
+	if not M.CreateWinOpen then
+		return
+	end
+
+	local curLine = vim.fn.getline(vim.fn.line("."))
+	M.close_create_win()
+	M.close_main_win()
+
+	local fullPath = vim.fn.stdpath("data") .. "/Basher/Templates/" .. curLine .. ".sh"
+	vim.cmd(":edit! " .. fullPath)
+
 end
 
 return M

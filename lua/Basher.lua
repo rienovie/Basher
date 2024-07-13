@@ -87,8 +87,8 @@ M.removeScript = function()
 	return module.remove_script()
 end
 
-M.addCurrentScript = function()
-	return module.add_current_script()
+M.addCurrentScript = function(bShowModWin)
+	return module.add_current_script(bShowModWin)
 end
 
 M.addCurrentScriptAsTemplate = function()
@@ -113,6 +113,10 @@ end
 
 M.newFromTemplateCurLine = function()
 	return module.new_from_template_cur_line()
+end
+
+M.editSelectedTemplate = function()
+	return module.edit_selected_template()
 end
 
 return M
