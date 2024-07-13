@@ -107,4 +107,12 @@ M.refreshTemplateList = function()
 	return module.refresh_template_list()
 end
 
+M.newFromTemplate = function(templateName)
+	return module.new_from_template(templateName)
+end
+
+M.newFromTemplateCurLine = function()
+	return module.new_from_template_cur_line()
+end
+
 return M

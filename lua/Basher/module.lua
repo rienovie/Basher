@@ -603,7 +603,7 @@ local function definePopupMappingsCreate()
 		M.CreateBuf,
 		"n",
 		"<CR>",
-		":lua require('Basher').closeCreateWin()<CR>",
+		":lua require('Basher').newFromTemplateCurLine()<CR>",
 		{ noremap = true, silent = true }
 	)
 	vim.api.nvim_buf_set_keymap(
@@ -637,6 +637,15 @@ local function getTemplateList()
 	end
 
 	return output
+end
+
+local function doesTemplateExist(nameToCheck)
+	for _, value in pairs(M.templateList) do
+		if value == nameToCheck then
+			return true
+		end
+	end
+	return false
 end
 
 M.save_script_options = function ()
@@ -948,6 +957,71 @@ M.refresh_template_list = function ()
 		vim.api.nvim_buf_set_lines(M.CreateBuf,0,-1,false,M.templateList)
 		vim.cmd("set nomodifiable")
 	end
+end
+
+M.new_from_template = function (templateName)
+	if M.templateList[templateName] == nil then
+		M.refresh_template_list()
+		if not doesTemplateExist(templateName) then
+			error("Template " .. templateName .. " was not found! Please check NvimData/Basher/Templates")
+			return
+		end
+	end
+	if M.CreateWinOpen then
+		M.close_create_win()
+	end
+	if M.ModWinOpen then
+		M.close_modify_win()
+	end
+	if M.MainWinOpen then
+		M.close_main_win()
+	end
+
+	vim.print(templateName)
+
+	local name = vim.fn.input("Please enter name...")
+	-- TODO: check for invalid file name input
+	if doesTemplateExist(name) then
+		error("\n\nTemplate with name " .. name .. " already exists!\n\nUnable to create template!")
+		return
+	end
+
+	name = name .. ".sh"
+	local cmdLine = "!touch " .. name
+	vim.cmd(cmdLine)
+	if M.AutochmodX then
+		cmdLine = "!chmod +x " .. name
+		vim.cmd(cmdLine)
+	end
+
+	--Will discard any changes on current buffer  TODO: maybe give warning?
+	vim.cmd(":edit! " .. name)
+
+	--Shouldn't fail but  TODO: make sure it doesn't
+	local templateFullPath = vim.fn.stdpath("data") .. "/Basher/Templates/" .. templateName .. ".sh"
+	local finalLines = {}
+	for value in io.lines(templateFullPath) do
+		table.insert(finalLines, value)
+	end
+	if type(finalLines) ~= "table" then
+		error("Type error when reading Template file: " .. templateFullPath .. " returned type " .. tostring(type(finalLines)))
+		return
+	end
+	table.insert(finalLines, "# Made with Basher")
+	if M.FunOnScriptCreate then
+		table.insert(finalLines, "# " .. getSomeFun())
+	end
+	-- HACK: cannot use \n in strings, so bleh
+	table.insert(finalLines, "")
+	table.insert(finalLines, "")
+
+	vim.api.nvim_buf_set_lines(0, 0, -1, false, finalLines)
+	vim.cmd(":w")
+	vim.api.nvim_feedkeys("GA", "n", false)
+end
+
+M.new_from_template_cur_line = function()
+	M.new_from_template(vim.fn.getline(vim.fn.line(".")))
 end
 
 M.init = function ()
