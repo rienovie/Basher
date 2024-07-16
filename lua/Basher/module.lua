@@ -8,7 +8,7 @@ local M = {}
 M.ModWinOpen = false
 M.MainWinOpen = false
 M.CreateWinOpen = false
-M.BorderChars = {"─", "│", "─", "│", "╭", "╮", "╯", "╰" }
+M.BorderChars = { "═", "║", "═", "║", "╔", "╗", "╝", "╚" }
 M.CurrentModifyScript = nil
 M.ModBuf = nil
 M.MainBuf = nil
@@ -162,27 +162,18 @@ local function getSomeFun()
 	return subject .. " " .. action .. " " .. object .. punc[r]
 end
 
-local defaultDataFile = [[
-[config]
-autochmod=true
-templateDefault="basic.sh"
-
-]]
-
 local basicBashTemplate = [[#!usr/bin/bash
 
 ]]
 
 --TODO: look into zsh and if I should include a basic template for it
 
--- write the default values inside this function for now
 local function createNewDataFileAndDir()
 	--create basher directory
 	vim.fn.mkdir(vim.fn.stdpath("data") .. "/Basher")
 
 	--create dataFile
 	io.output(vim.fn.stdpath("data") .. "/Basher/basher.data")
-	io.write(defaultDataFile)
 	io.write("[" .. vim.fn.getcwd() .. "]\n")
 	io.close()
 
@@ -291,6 +282,20 @@ local function definePopupMappingsMain()
 	vim.api.nvim_buf_set_keymap(
 		M.MainBuf,
 		"n",
+		"4",
+		":lua require('Basher').runScript(4)<CR>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_buf_set_keymap(
+		M.MainBuf,
+		"n",
+		"5",
+		":lua require('Basher').runScript(5)<CR>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_buf_set_keymap(
+		M.MainBuf,
+		"n",
 		"e",
 		":lua require('Basher').editSelected()<CR>",
 		{ noremap = true, silent = true } )
@@ -316,7 +321,7 @@ local function definePopupMappingsMain()
 end
 
 
-
+-- TODO: make sure works with weird directory names and such
 local function pushToSL(fullLine)
 	local output = {}
 	output["FL"] = fullLine
@@ -487,7 +492,7 @@ end
 local function populateScriptList()
 	for i, _ in ipairs(M.scriptList) do
 		M.scriptList[i] = nil
-end
+	end
 
 	if not doesDataFileExist() then
 		createNewDataFileAndDir()
@@ -504,6 +509,37 @@ end
 	io.close(file)
 
 	sortSL()
+end
+
+local function definePopupMappingsMod()
+	vim.api.nvim_create_autocmd("BufLeave", {buffer = M.ModBuf, callback = M.close_modify_win})
+	vim.api.nvim_buf_set_keymap(
+		M.ModBuf,
+		"n",
+		"<Esc>",
+		"<cmd>:lua require('Basher').closeModifyWin()<CR>",
+		{ noremap = true, silent = true})
+	vim.api.nvim_buf_set_keymap(
+		M.ModBuf,
+		"n",
+		"<C-x>",
+		"<cmd>:lua require('Basher').removeScript()<CR>",
+		{ noremap = true, silent = true })
+
+	-- HACK: function does not allow multiple modes so must do twice
+	vim.api.nvim_buf_set_keymap(
+		M.ModBuf,
+		"n",
+		"<C-s>",
+		"<cmd>:lua require('Basher').saveScriptOptions()<CR>",
+		{ noremap = true, silent = true})
+	vim.api.nvim_buf_set_keymap(
+		M.ModBuf,
+		"i",
+		"<C-s>",
+		"<cmd>:lua require('Basher').saveScriptOptions()<CR>",
+		{ noremap = true, silent = true})
+
 end
 
 M.close_modify_win = function ()
@@ -565,34 +601,7 @@ local function openModifyWin(scriptIndex)
 	vim.api.nvim_buf_set_lines(M.ModBuf, 0, -1, false, lines)
 	vim.cmd("set modifiable")
 
-	vim.api.nvim_create_autocmd("BufLeave", {buffer = M.ModBuf, callback = M.close_modify_win})
-	vim.api.nvim_buf_set_keymap(
-		M.ModBuf,
-		"n",
-		"<Esc>",
-		"<cmd>:lua require('Basher').closeModifyWin()<CR>",
-		{ noremap = true, silent = true})
-	vim.api.nvim_buf_set_keymap(
-		M.ModBuf,
-		"n",
-		"<C-x>",
-		"<cmd>:lua require('Basher').removeScript()<CR>",
-		{ noremap = true, silent = true })
-
-	-- HACK: function does not allow multiple modes so must do twice
-	vim.api.nvim_buf_set_keymap(
-		M.ModBuf,
-		"n",
-		"<C-s>",
-		"<cmd>:lua require('Basher').saveScriptOptions()<CR>",
-		{ noremap = true, silent = true})
-	vim.api.nvim_buf_set_keymap(
-		M.ModBuf,
-		"i",
-		"<C-s>",
-		"<cmd>:lua require('Basher').saveScriptOptions()<CR>",
-		{ noremap = true, silent = true})
-
+	definePopupMappingsMod()
 
 end
 
@@ -627,6 +636,41 @@ local function definePopupMappingsCreate()
 		":lua require('Basher').editSelectedTemplate()<CR>",
 		{ noremap = true, silent = true }
 	)
+	vim.api.nvim_buf_set_keymap(
+		M.CreateBuf,
+		"n",
+		"1",
+		":lua require('Basher').newFromTemplateLine(1)<CR>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_buf_set_keymap(
+		M.CreateBuf,
+		"n",
+		"2",
+		":lua require('Basher').newFromTemplateLine(2)<CR>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_buf_set_keymap(
+		M.CreateBuf,
+		"n",
+		"3",
+		":lua require('Basher').newFromTemplateLine(3)<CR>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_buf_set_keymap(
+		M.CreateBuf,
+		"n",
+		"4",
+		":lua require('Basher').newFromTemplateLine(4)<CR>",
+		{ noremap = true, silent = true }
+	)
+	vim.api.nvim_buf_set_keymap(
+		M.CreateBuf,
+		"n",
+		"5",
+		":lua require('Basher').newFromTemplateLine(5)<CR>",
+		{ noremap = true, silent = true }
+	)
 end
 
 local function getTemplateList()
@@ -636,7 +680,7 @@ local function getTemplateList()
 	for _,value in pairs(tList) do
 		local _,e = string.find(string.reverse(value), "/")
 		if e == nil then
-			error("Problem in getting template list for some reason a value of: " .. value .. " was found in TemplateDir!")
+			error("Problem in getting template list! For some reason a value of: " .. value .. " was found in TemplateDir!")
 			goto continue
 		end
 		table.insert(output, string.sub(value,string.len(value) - e + 2,string.len(value) - 3))
@@ -759,7 +803,6 @@ end
 
 M.run_script = function(scriptIndex)
 	if M.scriptList[scriptIndex] == nil then
-		M.close_main_win()
 		return
 	end
 	local cmdLine = "!sh " .. M.scriptList[scriptIndex].File
@@ -768,6 +811,21 @@ M.run_script = function(scriptIndex)
 	end
 	vim.cmd(cmdLine)
 	M.close_main_win()
+end
+
+M.run_script_from_alias = function(scriptAlias)
+	if #M.scriptList == 0 then
+		populateScriptList()
+	end
+
+	for i,val in ipairs(M.scriptList) do
+		if val["Alias"] ~= nil and val["Alias"] == scriptAlias then
+			M.run_script(i)
+			return
+		end
+	end
+
+	error("Script with alias: " .. scriptAlias .. " was not found!")
 end
 
 M.edit_selected = function ()
@@ -925,7 +983,7 @@ M.open_create_win = function ()
 
 	M.CreateBuf = vim.api.nvim_create_buf(false,true)
 	local popupOpts = {
-		title = " ╔╣Template╠╗  <Ctrl-R> Refresh | <Esc> Cancel ",
+		title = " ╔╣Template╠╗  [E]dit | <Ctrl-R> Refresh | <Esc> Cancel ",
 		line = math.floor(((vim.o.lines - 5) / 2) - 1),
 		col = math.floor((vim.o.columns - 60) / 2),
 		minwidth = 60,
@@ -991,6 +1049,9 @@ M.new_from_template = function (templateName)
 	end
 
 	local name = vim.fn.input("Please enter name...")
+	if #name == 0 then
+		return
+	end
 	-- TODO: check for invalid file name input
 	if doesTemplateExist(name) then
 		error("\n\nTemplate with name " .. name .. " already exists!\n\nUnable to create template!")
@@ -1037,8 +1098,23 @@ M.new_from_template_cur_line = function()
 	M.new_from_template(vim.fn.getline(vim.fn.line(".")))
 end
 
+M.new_from_template_line = function (lineNumber)
+	if not M.CreateWinOpen then
+		return
+	end
+
+	local line = vim.api.nvim_buf_get_lines(0, lineNumber - 1, lineNumber, false)[1]
+
+	if line == nil then
+		return
+	end
+
+	M.new_from_template(line)
+end
+
 M.init = function ()
 	M.refresh_template_list()
+	populateScriptList()
 end
 
 M.edit_selected_template = function()

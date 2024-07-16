@@ -11,6 +11,9 @@ local config = {
 
 	-- Max amount of prior directories shown when file has no alias
 	pathMaxDirs = 2,
+
+	-- When creating new bash script, adds a fun comment
+	funOnCreate = true,
 }
 
 ---@class MyModule
@@ -27,6 +30,7 @@ M.setup = function(args)
 	M.PrintFunOnStart = M.config.funOnStart
 	M.PathMax = M.config.pathMaxDirs
 	M.AutochmodX = M.config.autoMakeExec
+	M.FunOnScriptCreate = M.config.funOnCreate
 
 	module.init()
 end
@@ -117,6 +121,14 @@ end
 
 M.editSelectedTemplate = function()
 	return module.edit_selected_template()
+end
+
+M.newFromTemplateLine = function(lineNumber)
+	return module.new_from_template_line(lineNumber)
+end
+
+M.runScriptFromAlias = function(scriptAlias)
+	return module.run_script_from_alias(scriptAlias)
 end
 
 return M
