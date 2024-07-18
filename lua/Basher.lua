@@ -14,6 +14,10 @@ local config = {
 
 	-- When creating new bash script, adds a fun comment
 	funOnCreate = true,
+
+	-- Silence general prints giving updates
+	-- i.e. script added / templates populated
+	silencePrints = false,
 }
 
 ---@class MyModule
@@ -31,6 +35,7 @@ M.setup = function(args)
 	M.PathMax = M.config.pathMaxDirs
 	M.AutochmodX = M.config.autoMakeExec
 	M.FunOnScriptCreate = M.config.funOnCreate
+	M.SilencePrints = M.config.silencePrints
 
 	module.init()
 end
@@ -57,10 +62,6 @@ end
 
 M.runScript = function(scriptIndex)
 	return module.run_script(scriptIndex)
-end
-
-M.editScript = function(scriptIndex)
-	return module.edit_script(scriptIndex)
 end
 
 M.editSelected = function()

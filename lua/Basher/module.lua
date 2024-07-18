@@ -20,6 +20,7 @@ M.PrintFunOnStart = true
 M.FunOnScriptCreate = true
 M.PathMax = 2
 M.AutochmodX = true
+M.SilencePrints = false
 
 M.scriptList = {}
 --[[
@@ -600,9 +601,9 @@ local function openModifyWin(scriptIndex)
 	vim.api.nvim_win_set_var(pu.border.win_id, "winhl", 'Modify Script Options')
 	vim.api.nvim_buf_set_lines(M.ModBuf, 0, -1, false, lines)
 	vim.cmd("set modifiable")
+	vim.api.nvim_feedkeys("A", "n", true)
 
 	definePopupMappingsMod()
-
 end
 
 local function definePopupMappingsCreate()
@@ -828,14 +829,14 @@ M.run_script_from_alias = function(scriptAlias)
 	error("Script with alias: " .. scriptAlias .. " was not found!")
 end
 
-M.edit_selected = function ()
-	M.edit_script(vim.fn.line("."))
-end
-
-M.edit_script = function (scriptIndex)
+local function editScript(scriptIndex)
 	M.close_main_win()
 	vim.cmd("e " .. M.scriptList[scriptIndex].File)
 end
+M.edit_selected = function ()
+	editScript(vim.fn.line("."))
+end
+
 
 M.print_some_fun = function()
 	print(getSomeFun())
@@ -905,7 +906,7 @@ M.add_current_script = function (showModWin)
 	local curFile = vim.api.nvim_buf_get_name(0)
 
 	if string.sub(curFile, -2) ~= "sh" then
-		vim.print(curFile .. " is not a bash script!")
+		error(curFile .. "is not a bash script!")
 		return
 	end
 
@@ -915,7 +916,9 @@ M.add_current_script = function (showModWin)
 	if showModWin then
 		openModifyWin(newIndex)
 	else
-		vim.print("Script " .. curFile .. " was added to Basher.")
+		if not M.SilencePrints then
+			vim.print("Script " .. curFile .. " was added to Basher.")
+		end
 	end
 
 	writeScriptListToFile()
@@ -929,7 +932,7 @@ M.add_current_script_as_template = function ()
 
 	local fullPath = vim.api.nvim_buf_get_name(0)
 	if string.sub(fullPath, -2) ~= "sh" then
-		vim.print(fullPath .. " is not a bash file!")
+		error(fullPath .. " is not a bash script!")
 		return
 	end
 
@@ -940,7 +943,7 @@ M.add_current_script_as_template = function ()
 	end
 	local _, fileNameStartIndex = string.find(fullPath,vim.fn.getcwd(0))
 	if fileNameStartIndex == nil then
-		vim.print("File name error " .. fullPath)
+		error("File name error " .. fullPath)
 		return
 	end
 	fileNameStartIndex = fileNameStartIndex + 2
@@ -948,7 +951,7 @@ M.add_current_script_as_template = function ()
 	local newTemplateName = string.sub(fullPath,fileNameStartIndex, -1)
 	local newFilePath = vim.fn.stdpath("data") .. "/Basher/Templates/" .. newTemplateName
 	if io.open(newFilePath) ~= nil then
-		vim.print("Template: " .. newTemplateName .. " already exists!")
+		error("Template: " .. newTemplateName .. " already exists!")
 		return
 	end
 
@@ -1019,9 +1022,11 @@ end
 M.refresh_template_list = function ()
 	M.templateList = getTemplateList()
 	if #M.templateList == 0 then
-		vim.print("Basher found 0 Templates!")
+		error("No Basher Templates found in NvimData/Basher/Templates!")
 	else
-		vim.print("Basher Templates populated.")
+		if not M.SilencePrints then
+			vim.print("Basher Templates populated.")
+		end
 	end
 	if M.CreateWinOpen then
 		vim.cmd("set modifiable")
@@ -1048,7 +1053,7 @@ M.new_from_template = function (templateName)
 		M.close_main_win()
 	end
 
-	local name = vim.fn.input("Please enter name...")
+	local name = vim.fn.input("Please enter name of new script...")
 	if #name == 0 then
 		return
 	end
