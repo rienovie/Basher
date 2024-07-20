@@ -726,11 +726,15 @@ M.save_script_options = function ()
 		elseif curKey == "Arguments" then
 			if curValue ~= "" then
 				script["Args"] = curValue
+			else
+				script["Args"] = nil
 			end
 			countCheck = countCheck + 1
 		elseif curKey == "Alias" then
 			if curValue ~= "" then
 				script["Alias"] = curValue
+			else
+				script["Alias"] = nil
 			end
 			countCheck = countCheck + 1
 		end
