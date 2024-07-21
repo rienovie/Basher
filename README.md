@@ -5,7 +5,8 @@ Make and Run Bash Scripts in NeoVim easier
 
 I think you should at least have a shortcut to toggle the Main Window as you can do everything from this.
 The toggle function:
-    >require("Basher").toggleMainWin()
+
+    require("Basher").toggleMainWin()
 
 When inside the Main Window you can Run / Add / Create / Modify scripts.
 
@@ -14,22 +15,25 @@ You run a script by either hitting the line number key or enter on the selected.
 You can reorder the scripts in this menu by using <Shift-U> and <Shift-D>
 
 There is two functions that'll let you run the scripts without openning the Main Window:
-    >require("Basher").runScript(*scriptNumber*)
-    >require("Basher").runScriptFromAlias(*scriptAlias*)
+
+    require("Basher").runScript(**scriptNumber**)
+    require("Basher").runScriptFromAlias(**scriptAlias**)
 
 The script number will be the line number it's on.
 The scripts will stay in the same order you set them in the Main Window.
 
 I personally like to set something like:
-    >vim.keymap.set({ "n", "i" }, "<C-1>", '<cmd>:lua require("Basher").runScript(1)<CR>')
-    >vim.keymap.set({ "n", "i" }, "<C-2>", '<cmd>:lua require("Basher").runScript(2)<CR>')
-    >vim.keymap.set({ "n", "i" }, "<C-3>", '<cmd>:lua require("Basher").runScript(3)<CR>')
-    >vim.keymap.set({ "n", "i" }, "<C-4>", '<cmd>:lua require("Basher").runScript(4)<CR>')
+
+    vim.keymap.set({ "n", "i" }, "<C-1>", '<cmd>:lua require("Basher").runScript(1)<CR>')
+    vim.keymap.set({ "n", "i" }, "<C-2>", '<cmd>:lua require("Basher").runScript(2)<CR>')
+    vim.keymap.set({ "n", "i" }, "<C-3>", '<cmd>:lua require("Basher").runScript(3)<CR>')
+    vim.keymap.set({ "n", "i" }, "<C-4>", '<cmd>:lua require("Basher").runScript(4)<CR>')
 This lets me run multiple scripts without specifing with an Alias.
 
 When you want to add a script that already exists you can go thru the Main Win or use:
-    >require("Basher").addScript()
-    >require("Basher").addCurrentScript(*openModifyWindowBool*)
+
+    require("Basher").addScript()
+    require("Basher").addCurrentScript(**openModifyWindowBool**)
 
 addScript will bring up an empty Modify Window for you to specify the file.
 addCurrentScript will add the current buffer if it's a .sh file.
@@ -43,26 +47,29 @@ If you want to remove scripts from Basher, you must open the Modify Window for t
 When you are creating a script, you must specify a template.
 
 There is a "basic" template that is included with Basher, but if you want to add your own you can use:
-    >require("Basher").addCurrentScriptAsTemplate()
+
+    require("Basher").addCurrentScriptAsTemplate()
 
 This will take the currently open .sh file and save a copy of it to the Templates folder (Data/Basher/Templates).
-This *WILL NOT* change the current buffer to the new file.
+This **WILL NOT** change the current buffer to the new file.
 
 If you want to edit a template file, you can open the Create Menu and Edit from there.
 
 If you modify the Templates, it's a good idea to:
-    >require("Basher").refreshTemplateList()
+
+    require("Basher").refreshTemplateList()
 
 ## Install
 
-Use your prefered package manager.
-Example using Lazy:
-    >{ 'rienovie/Basher', opts = {} },
+Using Lazy:
+
+    { 'rienovie/Basher', opts = {} },
 
 ## Config
 
 There are a few options for config and they are just used like this:
-    >{ 'rienovie/Basher', opts = { funOnStart = true, pathMaxDirs = 2 }}
+
+    { 'rienovie/Basher', opts = { funOnStart = true, pathMaxDirs = 2 }},
 
 Here is the list of all the options:
 
