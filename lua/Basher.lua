@@ -132,4 +132,8 @@ M.runScriptFromAlias = function(scriptAlias)
 	return module.run_script_from_alias(scriptAlias)
 end
 
+M.toggleMainWin = function()
+	return module.toggle_main_win()
+end
+
 return M

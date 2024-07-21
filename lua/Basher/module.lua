@@ -879,7 +879,19 @@ M.open_main_win = function()
 
 end
 
-M.add_script = function ()
+M.toggle_main_win = function()
+	if M.ModWinOpen or M.CreateWinOpen then
+		return
+	end
+
+	if M.MainWinOpen then
+		M.close_main_win()
+	else
+		M.open_main_win()
+	end
+end
+
+M.add_script = function()
 	if M.ModWinOpen or M.CreateWinOpen then
 		return
 	end

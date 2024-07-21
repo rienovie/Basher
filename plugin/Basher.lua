@@ -32,6 +32,7 @@ vim.api.nvim_create_user_command("AddCurrentScriptAsTemplate", require("Basher")
 --#region MainWin
 --These functions will mostly only work inside the Main Win
 
+vim.api.nvim_create_user_command("ToggleMainWin", require("Basher").toggleMainWin, {})
 vim.api.nvim_create_user_command("OpenMainWin", require("Basher").openMainWin, {})
 vim.api.nvim_create_user_command("CloseMainWin", require("Basher").closeMainWin, {})
 vim.api.nvim_create_user_command("RunSelected", require("Basher").runSelected, {})
