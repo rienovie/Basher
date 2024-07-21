@@ -10,6 +10,7 @@ local config = {
 	autoMakeExec = true,
 
 	-- Max amount of prior directories shown when file has no alias
+	-- 0 is no limit
 	pathMaxDirs = 2,
 
 	-- When creating new bash script, adds a fun comment
@@ -31,13 +32,8 @@ M.config = config
 -- you can also put some validation here for those.
 M.setup = function(args)
 	M.config = vim.tbl_deep_extend("force", M.config, args or {})
-	M.PrintFunOnStart = M.config.funOnStart
-	M.PathMax = M.config.pathMaxDirs
-	M.AutochmodX = M.config.autoMakeExec
-	M.FunOnScriptCreate = M.config.funOnCreate
-	M.SilencePrints = M.config.silencePrints
 
-	module.init()
+	module.init(M.config)
 end
 
 M.openMainWin = function()

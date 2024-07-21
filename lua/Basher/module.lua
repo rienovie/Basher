@@ -406,6 +406,8 @@ local function getMainLines()
 			local slashCount = M.PathMax
 			if slashCount == 0 then
 				slashCount = 127
+			else
+				slashCount = slashCount + 1
 			end
 			local curSlashCount = 0
 			local bAdded = false
@@ -1133,7 +1135,13 @@ M.new_from_template_line = function (lineNumber)
 	M.new_from_template(line)
 end
 
-M.init = function ()
+M.init = function(opts)
+	M.PrintFunOnStart = opts.funOnStart
+	M.PathMax = opts.pathMaxDirs
+	M.AutochmodX = opts.autoMakeExec
+	M.FunOnScriptCreate = opts.funOnCreate
+	M.SilencePrints = opts.silencePrints
+
 	M.refresh_template_list()
 	populateScriptList()
 end
