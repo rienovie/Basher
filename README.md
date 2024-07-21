@@ -53,6 +53,36 @@ If you want to edit a template file, you can open the Create Menu and Edit from 
 If you modify the Templates, it's a good idea to:
     >require("Basher").refreshTemplateList()
 
+## Install
+
+Use your prefered package manager.
+Example using Lazy:
+    >{ 'rienovie/Basher', opts = {} },
+
+## Config
+
+There are a few options for config and they are just used like this:
+    >{ 'rienovie/Basher', opts = { funOnStart = true, pathMaxDirs = 2 }}
+
+Here is the list of all the options:
+
+    --Prints fun message whenever main window opens
+    funOnStart = bool (default = true)
+
+    --When creating script automatically make executable
+    autoMakeExec = bool (default = true)
+
+    --Max amount of prior directories shown when no Alias given
+    --0 is no limit
+    pathMaxDirs = int (default = 2)
+
+    --When creating script add a fun comment
+    funOnCreate = bool (default = true)
+
+    --Silence general prints giving updates
+    --i.e. "Script Added" or "Templates Populated"
+    silencePrints = bool (default = false)
+
 ## Notes:
 
 Used [this template](https://github.com/ellisonleao/nvim-plugin-template) as the base.
