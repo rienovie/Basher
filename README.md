@@ -1,6 +1,8 @@
 # Basher
 Make and Run Bash Scripts in NeoVim easier
 
+![Basher](Basher.png)
+
 ## Usage
 
 I think you should at least have a shortcut to toggle the Main Window as you can do everything from this.
