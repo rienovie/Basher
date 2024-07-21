@@ -1,12 +1,20 @@
 --#region Useful Functions
 --These are the functions you should know about
 
---This is probably the function you'll use the most
+vim.api.nvim_create_user_command("ToggleMainWin", require("Basher").toggleMainWin, {})
+
 vim.api.nvim_create_user_command("RunScriptFromAlias", function(opts)
 	require("Basher").runScriptFromAlias(opts.args)
 end, { nargs = 1 })
 
---This is probably the function you'll use the second most
+--This takes an input which is the line number the script is on
+--i.e. if you want to run the script on line 3 in the main win you could input "3"
+--The scripts stay in the same order so you could shortcut with this
+vim.api.nvim_create_user_command("RunScript", function(opts)
+	require("Basher").runScript(opts.args)
+end, { nargs = 1 })
+
+--Will create a new Bash script from the specified template
 --The input is the name of the template i.e newFromTemplate("basic")
 vim.api.nvim_create_user_command("NewFromTemplate", function(opts)
 	require("Basher").newFromTemplate(opts.args)
@@ -32,7 +40,6 @@ vim.api.nvim_create_user_command("AddCurrentScriptAsTemplate", require("Basher")
 --#region MainWin
 --These functions will mostly only work inside the Main Win
 
-vim.api.nvim_create_user_command("ToggleMainWin", require("Basher").toggleMainWin, {})
 vim.api.nvim_create_user_command("OpenMainWin", require("Basher").openMainWin, {})
 vim.api.nvim_create_user_command("CloseMainWin", require("Basher").closeMainWin, {})
 vim.api.nvim_create_user_command("RunSelected", require("Basher").runSelected, {})
@@ -40,13 +47,6 @@ vim.api.nvim_create_user_command("EditSelected", require("Basher").editSelected,
 
 -- Will open the Modify Win
 vim.api.nvim_create_user_command("ModifySelected", require("Basher").modifySelected, {})
-
---This takes an input which is the line number the script is on
---i.e. if you want to run the script on line 3 in the main win you could hit "3"
---The scripts stay in the same order so you could shortcut with this
-vim.api.nvim_create_user_command("RunScript", function(opts)
-	require("Basher").runScript(opts.args)
-end, { nargs = 1 })
 
 -- These will change the order of the scripts
 -- Use <Shift-U> and <Shift-D>

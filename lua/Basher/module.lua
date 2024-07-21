@@ -1142,8 +1142,8 @@ M.init = function(opts)
 	M.FunOnScriptCreate = opts.funOnCreate
 	M.SilencePrints = opts.silencePrints
 
-	M.refresh_template_list()
 	populateScriptList()
+	M.refresh_template_list()
 end
 
 M.edit_selected_template = function()
