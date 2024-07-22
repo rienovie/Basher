@@ -14,7 +14,7 @@ When inside the Main Window you can Run / Add / Create / Modify scripts.
 
 You run a script by either hitting the line number key or enter on the selected. i.e hit "2" to run the script on line two.
 
-You can reorder the scripts in this menu by using <Shift-U> and <Shift-D>
+You can reorder the scripts in this menu by using **Shift-U** and **Shift-D**
 
 There is two functions that'll let you run the scripts without openning the Main Window:
 
