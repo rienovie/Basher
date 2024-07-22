@@ -19,6 +19,9 @@ local config = {
 	-- Silence general prints giving updates
 	-- i.e. script added / templates populated
 	silencePrints = false,
+
+	-- Location to put newly created scripts
+	defaultNewLocation = "bash",
 }
 
 ---@class MyModule

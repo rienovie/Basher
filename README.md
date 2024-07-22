@@ -92,6 +92,9 @@ Here is the list of all the options:
     --i.e. "Script Added" or "Templates Populated"
     silencePrints = bool (default = false)
 
+    --Location to put newly created scripts
+    defaultNewLocation = string (default = "bash")
+
 ## Notes:
 
 Used [this template](https://github.com/ellisonleao/nvim-plugin-template) as the base.

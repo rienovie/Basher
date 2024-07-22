@@ -21,6 +21,7 @@ M.FunOnScriptCreate = true
 M.PathMax = 2
 M.AutochmodX = true
 M.SilencePrints = false
+M.DefaultNewLocation = "bash"
 
 M.scriptList = {}
 --[[
@@ -1081,16 +1082,21 @@ M.new_from_template = function (templateName)
 		return
 	end
 
-	name = name .. ".sh"
-	local cmdLine = "!touch " .. name
+	local filePath = M.DefaultNewLocation .. "/" .. name .. ".sh"
+
+	if not vim.fs.find(M.DefaultNewLocation, { upward = false, type = "directory" })[1] then
+		vim.fn.mkdir(M.DefaultNewLocation, "p")
+	end
+
+	local cmdLine = "!touch " .. filePath
 	vim.cmd(cmdLine)
 	if M.AutochmodX then
-		cmdLine = "!chmod +x " .. name
+		cmdLine = "!chmod +x " .. filePath
 		vim.cmd(cmdLine)
 	end
 
 	--Will discard any changes on current buffer  TODO: maybe give warning?
-	vim.cmd(":edit! " .. name)
+	vim.cmd(":edit! " .. filePath)
 
 	--Shouldn't fail but  TODO: make sure it doesn't
 	local templateFullPath = vim.fn.stdpath("data") .. "/Basher/Templates/" .. templateName .. ".sh"
@@ -1141,6 +1147,7 @@ M.init = function(opts)
 	M.AutochmodX = opts.autoMakeExec
 	M.FunOnScriptCreate = opts.funOnCreate
 	M.SilencePrints = opts.silencePrints
+	M.DefaultNewLocation = opts.defaultNewLocation
 
 	populateScriptList()
 	M.refresh_template_list()
