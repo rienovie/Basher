@@ -560,7 +560,6 @@ M.close_modify_win = function ()
 	M.open_main_win()
 end
 
--- Assumes the main win is open and closes it
 local function openModifyWin(scriptIndex)
 	if M.ModWinOpen or M.CreateWinOpen then
 		return
@@ -1054,6 +1053,16 @@ M.refresh_template_list = function ()
 	end
 end
 
+local function doesDefaultDirExist()
+	for n, t in vim.fs.dir(vim.fn.getcwd()) do
+		if t == "directory" and n == M.DefaultNewLocation then
+			return true
+		end
+	end
+
+	return false
+end
+
 M.new_from_template = function (templateName)
 	if M.templateList[templateName] == nil then
 		M.refresh_template_list()
@@ -1084,15 +1093,8 @@ M.new_from_template = function (templateName)
 
 	local filePath = M.DefaultNewLocation .. "/" .. name .. ".sh"
 
-	if not vim.fs.find(M.DefaultNewLocation, { upward = false, type = "directory" })[1] then
+	if not doesDefaultDirExist() then
 		vim.fn.mkdir(M.DefaultNewLocation, "p")
-	end
-
-	local cmdLine = "!touch " .. filePath
-	vim.cmd(cmdLine)
-	if M.AutochmodX then
-		cmdLine = "!chmod +x " .. filePath
-		vim.cmd(cmdLine)
 	end
 
 	--Will discard any changes on current buffer  TODO: maybe give warning?
