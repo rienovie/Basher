@@ -30,6 +30,7 @@ M.scriptList = {}
 --"Alias" = name to represent
 --"File" = full path to file
 --"Args" = additional arguments
+--"PreArgs" = put before each call (could use for external terminal call)
 --]]
 
 local function getSomeFun()
@@ -330,6 +331,7 @@ local function pushToSL(fullLine)
 	local sBuild = ""
 	local bIndexDetermined = false
 	local bAliasDetermined = false
+	local bPreArgsDetermined = false
 	local bFileDetermined = false
 	local bEscSpace = false -- used to check if space doesn't end filepath
 	local c = ""
@@ -349,7 +351,11 @@ local function pushToSL(fullLine)
 
 		if not bAliasDetermined then
 			if c == "_" then goto continue end
-			if c == "=" then
+			if c == "=" or c == "%" then
+				if c == "=" then
+					bPreArgsDetermined = true
+					output["PreArgs"] = nil
+				end
 				bAliasDetermined = true
 				if string.len(sBuild) == 0 then
 					output["Alias"] = nil
@@ -362,6 +368,22 @@ local function pushToSL(fullLine)
 			end
 			sBuild = sBuild .. c
 			goto continue
+		end
+
+		if not bPreArgsDetermined then
+			if c == "=" then
+				bPreArgsDetermined = true
+				if(string.len(sBuild) == 0) then
+					error("Error Parsing Basher Data File!\n\nPreArgs have not been determined but no Args have been found!\n\nReport Error Please!")
+				else
+					output["PreArgs"] = sBuild
+					sBuild = ""
+					goto continue
+				end
+			else
+				sBuild = sBuild .. c
+				goto continue
+			end
 		end
 
 		if c == "\\" then
@@ -444,6 +466,9 @@ local function rebuildSLFullLines()
 		sBuild = tostring(v["Num"]) .. "_"
 		if v["Alias"] ~= nil then
 			sBuild = sBuild .. v["Alias"]
+		end
+		if v["PreArgs"] ~= nil then
+			sBuild = sBuild .. "%" .. v["PreArgs"]
 		end
 		sBuild = sBuild .. "="
 		if v["File"] ~= nil then
@@ -578,6 +603,11 @@ local function openModifyWin(scriptIndex)
 		table.insert(lines, "File=")
 	else
 		table.insert(lines, 'File=' .. script["File"])
+	end
+	if script["PreArgs"] == nil then
+		table.insert(lines, 'PreArgs=')
+	else
+		table.insert(lines, 'PreArgs=' .. script["PreArgs"])
 	end
 	if script["Args"] == nil then
 		table.insert(lines, 'Arguments=')
@@ -739,11 +769,18 @@ M.save_script_options = function ()
 				script["Alias"] = nil
 			end
 			countCheck = countCheck + 1
+		elseif curKey == "PreArgs" then
+			if curValue ~= "" then
+				script["PreArgs"] = curValue
+			else
+				script["PreArgs"] = nil
+			end
+			countCheck = countCheck + 1
 		end
 
 	    ::continue::
 	end
-	if countCheck ~= 3 then
+	if countCheck ~= 4 then
 		error("Could not save! Incorrect number of options!")
 		goto leaveFunc
 	end
@@ -812,7 +849,11 @@ M.run_script = function(scriptIndex)
 	if M.scriptList[scriptIndex] == nil then
 		return
 	end
-	local cmdLine = "!sh " .. M.scriptList[scriptIndex].File
+	local cmdLine = "!"
+	if M.scriptList[scriptIndex].PreArgs ~= nil then
+		cmdLine = cmdLine .. M.scriptList[scriptIndex].PreArgs .. " "
+	end
+	cmdLine = cmdLine .. "sh " .. M.scriptList[scriptIndex].File
 	if M.scriptList[scriptIndex].Args ~= nil then
 		cmdLine = cmdLine .. " " .. M.scriptList[scriptIndex].Args
 	end
@@ -977,6 +1018,9 @@ M.add_current_script_as_template = function ()
 	io.write(finalOut)
 	io.close()
 
+	if not M.SilencePrints then
+		vim.print("New Template: " .. newTemplateName .. " has been added to Basher!")
+	end
 end
 
 M.remove_script = function ()
