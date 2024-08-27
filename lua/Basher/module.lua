@@ -846,18 +846,29 @@ M.move_up = function()
 end
 
 M.run_script = function(scriptIndex)
-	if M.scriptList[scriptIndex] == nil then
+	local script = M.scriptList[scriptIndex]
+	if script == nil then
 		return
 	end
-	local cmdLine = "!"
-	if M.scriptList[scriptIndex].PreArgs ~= nil then
-		cmdLine = cmdLine .. M.scriptList[scriptIndex].PreArgs .. " "
+	if script.PreArgs ~= nil then
+		local cmd = {}
+		for item in string.gmatch(script.PreArgs, "%S+") do
+			table.insert(cmd, item)
+		end
+		table.insert(cmd, "sh")
+		table.insert(cmd, script.File)
+		for item in string.gmatch(script.Args, "%S+") do
+			table.insert(cmd, item)
+		end
+		vim.fn.jobstart(cmd)
+	else
+		local cmdLine = "!"
+		cmdLine = cmdLine .. "sh " .. script.File
+		if script.Args ~= nil then
+			cmdLine = cmdLine .. " " .. script.Args
+		end
+		vim.cmd(cmdLine)
 	end
-	cmdLine = cmdLine .. "sh " .. M.scriptList[scriptIndex].File
-	if M.scriptList[scriptIndex].Args ~= nil then
-		cmdLine = cmdLine .. " " .. M.scriptList[scriptIndex].Args
-	end
-	vim.cmd(cmdLine)
 	M.close_main_win()
 end
 
