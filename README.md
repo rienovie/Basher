@@ -38,9 +38,13 @@ When you want to add a script that already exists you can go thru the Main Win o
     require("Basher").addCurrentScript(**openModifyWindowBool**)
 
 addScript will bring up an empty Modify Window for you to specify the file.
+
 addCurrentScript will add the current buffer if it's a .sh file.
 
 You can modify scripts to have an Alias or have additional arguments added to the end of the script call.
+
+You can also prepend additional arguments added to the beginning of the script call.
+(I use this to open a seperate kitty instance)
 
 If you want to remove scripts from Basher, you must open the Modify Window for the script you wish to remove.
 
