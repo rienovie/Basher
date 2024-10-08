@@ -857,8 +857,10 @@ M.run_script = function(scriptIndex)
 		end
 		table.insert(cmd, "sh")
 		table.insert(cmd, script.File)
-		for item in string.gmatch(script.Args, "%S+") do
-			table.insert(cmd, item)
+		if script.Args ~= nil then
+			for item in string.gmatch(script.Args, "%S+") do
+				table.insert(cmd, item)
+			end
 		end
 		vim.fn.jobstart(cmd)
 	else
