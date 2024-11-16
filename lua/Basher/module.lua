@@ -165,7 +165,7 @@ local function getSomeFun()
 	return subject .. " " .. action .. " " .. object .. punc[r]
 end
 
-local basicBashTemplate = [[#!usr/bin/bash
+local basicBashTemplate = [[#!/usr/bin/bash
 
 ]]
 
