@@ -1,0 +1,21 @@
+[ ] Quick populate
+	Search thru all subdirectories and add found scripts (as long as there's less than X which can be configured)
+
+[ ] Global and Local defaults
+	Make global and local scripts / settings
+	i.e. A global script list and settings that can change per project
+
+[ ] Duplicate entry
+	Allow to quickly create another entry based on one that already exists
+
+[ ] Project specific default location
+	Allow changing of the created scripts location per project
+
+[ ] Cpp tools
+	[ ] make cmake build template file
+	[ ] create cpp and header file
+	[ ] add file to SOURCES in cmake file
+
+[ ] Default and customizable auto-fills
+	[ ] Prepend
+	[ ] Append
